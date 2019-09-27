@@ -43,6 +43,14 @@ export class SharePointServiceManager {
     return result;
   };
 
+  public pnp_getListItems = (listTitle: string) => {
+    const result = this.get_v2(
+      `/_api/web/lists/getbytitle('${listTitle}')/items?`
+    );
+
+    return result;
+  };
+
   public pnp_activeTasks = (
     listTitle: string,
     policyTitle: string,
@@ -365,25 +373,49 @@ export class SharePointServiceManager {
   }
 
   public async pnp_getGroupMembers(groups: any[]) {
-    const users = [];
+    let users: any[] = [];
 
-    groups.forEach(async group => {
+    groups.map(async group => {
       const currrentUsers = await sp.web.siteGroups
         .getById(Number(group.id))
         .users.get();
 
       users.push(
-        ...currrentUsers.map(currentUser => ({
-          title: currentUser.Title,
-          email: currentUser.Email,
-          userId: currentUser.Id,
-          groupName: group.name
-        }))
+        ...currrentUsers.map(currentUser => {
+          return {
+            title: currentUser.Title,
+            email: currentUser.Email,
+            userId: currentUser.Id,
+            groupName: group.name
+          };
+        })
       );
     });
     console.log("users", users);
     return users;
     // return sp.web.siteGroups.getById(groupId).users.        get();
+  }
+
+  public async pnp_getGroupMembersV2(groups: any[]) {
+    const users: any[] = [];
+
+    for (let i = 0; i < groups.length; i++) {
+      const currrentUsers = await sp.web.siteGroups
+        .getById(Number(groups[i].id))
+        .users.get();
+
+      currrentUsers.map(currentUser => {
+        users.push({
+          title: currentUser.Title,
+          email: currentUser.Email,
+          userId: currentUser.Id,
+          groupName: groups[i].name
+        });
+      });
+    }
+
+    console.log("users", users);
+    return users;
   }
 
   public pnp_post(listId: string, objectofValues?: object): Promise<any> {

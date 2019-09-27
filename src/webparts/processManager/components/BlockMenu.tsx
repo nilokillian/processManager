@@ -89,6 +89,18 @@ export default class BlockMenu extends React.Component<IBlockMenuProps, {}> {
 
           <div
             className={cardStyle.card}
+            onClick={() => onComponentChange("taskManager")}
+          >
+            <ActionButton
+              iconProps={{ iconName: "TaskSolid", style: iconStyle }}
+              allowDisabledFocus
+              styles={buttonStyle()}
+            >
+              Task manager
+            </ActionButton>
+          </div>
+          <div
+            className={cardStyle.card}
             onClick={() => onComponentChange("groups")}
           >
             <ActionButton

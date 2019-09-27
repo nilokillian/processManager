@@ -278,36 +278,57 @@ export default class PolicyAssignmentForm extends React.Component<
     const { groupsAssigned, peopeleAssigned } = this.props.currentPolicy;
     const newGroups = [];
 
+    //check if there are new groups in peoplePicker
     groups.forEach(group => {
       const isExistingGroup = groupsAssigned.some(
         groupAssigned => groupAssigned.name === group.name
       );
-      console.log("isGroupNew", isExistingGroup);
       if (!isExistingGroup) {
         newGroups.push(group);
       }
     });
 
+    //check there are newly added groups, get users from them and create tasks
     if (newGroups.length !== 0) {
       const usersInsideNewGroups = await SharePointService.pnp_getGroupMembers(
         newGroups
       );
-
       await this._createTask(usersInsideNewGroups);
-      console.log("usersInsideNewGroups", usersInsideNewGroups);
+    } else {
+      // no new groups added but the exisiting ones might have more or less users
+      const tasksToRemove = [];
+      const tasksToAdd = [];
+      const usersInsideExistingGroups = await SharePointService.pnp_getGroupMembersV2(
+        groups
+      );
+
+      //checking if less users. If so => remove the corresponding tasks
+      activeTasks.forEach(task => {
+        const usrExists = usersInsideExistingGroups.some(
+          usr => usr.userId === Number(task.UserId)
+        );
+        if (!usrExists) tasksToRemove.push(task);
+      });
+
+      //cheking if more users
+      console.log("usersInsideExistingGroups", usersInsideExistingGroups);
+      usersInsideExistingGroups.forEach(user => {
+        user.userId;
+        user.groupName;
+        const isTask = activeTasks.some(
+          task => Number(task.UserId) === user.userId
+        );
+
+        if (!isTask) {
+          tasksToAdd.push(user);
+        }
+      });
+
+      //await this._createTask(tasksToAdd);
+
+      console.log("tasksToAdd", tasksToAdd);
+      console.log("tasksToRemove", tasksToRemove);
     }
-
-    // const tasksToRemove = activeTasks.filter(
-    //   task =>
-    //     task.UserGroupTitle ===
-    //     groupsAssigned.find(group => group.name === task.UserGroupTitle)
-    // );
-
-    // const tasksToRemove = groupsAssigned.filter(
-    //   group =>
-    //     group.name ==
-    //     activeTasks.find(task => task.UserGroupTitle == group.name)
-    // );
   };
 
   public submitForm = async () => {

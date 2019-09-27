@@ -9,6 +9,7 @@ import Policies from "./policy/Policies";
 import BlockMenu from "./BlockMenu";
 import PolicyAssignment from "./PolicyAssignment/PolicyAssignment";
 import GroupManager from "./group-manager/GroupManager";
+import TaskManager from "./task-manager/TaskManager";
 
 export interface IProcessManagerState {
   activeComponents: string;
@@ -42,6 +43,8 @@ export default class ProcessManager extends React.Component<
         {activeComponents === "policyAssignment" && <PolicyAssignment />}
 
         {activeComponents === "groups" && <GroupManager />}
+
+        {activeComponents === "taskManager" && <TaskManager />}
 
         {/* <div className={ styles.container }>
           <div className={ styles.row }>
