@@ -35,7 +35,15 @@ export class SharePointServiceManager {
     sp.setup({ spfxContext: content });
   }
 
-  public pnp_getPolicy = (listTitle: string) => {
+  public pnp_getPolicy = (listTitle: string, itemId: number) => {
+    const result = this.get_v2(
+      `/_api/web/lists/getbytitle('${listTitle}')/items(${itemId})`
+    );
+
+    return result;
+  };
+
+  public pnp_getPolicies = (listTitle: string) => {
     const result = this.get_v2(
       `/_api/web/lists/getbytitle('${listTitle}')/items?`
     );
@@ -63,6 +71,21 @@ export class SharePointServiceManager {
     return result;
   };
 
+  public getPolicyPage = async (
+    libName: string,
+    folderName: string,
+    fileName: string
+  ): Promise<any> => {
+    const serverRelativeUrl = this.context.pageContext.web.serverRelativeUrl;
+
+    return await sp.web
+      .getFileByServerRelativeUrl(
+        `${serverRelativeUrl}/${libName}/${folderName}/${fileName}`
+      )
+      .get()
+      .then(r => r);
+  };
+
   public getPolicyPages = async (
     libName: string,
     folderName: string
@@ -75,6 +98,21 @@ export class SharePointServiceManager {
       )
       .files.get()
       .then(res => (res = res));
+  };
+
+  public deletePolicyPage = async (
+    libName: string,
+    folderName: string,
+    fileName: string
+  ): Promise<any> => {
+    const serverRelativeUrl = this.context.pageContext.web.serverRelativeUrl;
+
+    return await sp.web
+      .getFileByServerRelativeUrl(
+        `${serverRelativeUrl}/${libName}/${folderName}/${fileName}`
+      )
+      .delete()
+      .then(r => r);
   };
 
   public pnp_CreatePage = async (pageTitle: string) => {
@@ -205,14 +243,14 @@ export class SharePointServiceManager {
   }
 
   public pnp_getItem(
-    listId: string,
+    listTitle: string,
     itemId: number,
     fieldExpand?: string[],
     fieldSelect?: string[]
   ): Promise<any> {
     const web = new Web(this.context.pageContext.web.absoluteUrl);
     return web.lists
-      .getById(listId)
+      .getByTitle(listTitle)
       .items.getById(itemId)
       .select(...fieldSelect)
       .expand(...fieldExpand)
@@ -330,6 +368,10 @@ export class SharePointServiceManager {
     return await sp.web.siteGroups.getById(groupId).users.removeById(userId);
   }
 
+  public async pnp_deleteGroup(groupId: number) {
+    return await sp.web.siteGroups.removeById(groupId);
+  }
+
   public async pnp_addGroupMember(groupId: number, userLoginNames: string[]) {
     let isOk: boolean;
     const batch = sp.web.createBatch();
@@ -372,46 +414,48 @@ export class SharePointServiceManager {
     return sp.web.siteGroups.get().then(res => res);
   }
 
+  // public pnp_getGroupMembers(groups: any[]) {
+  //   let users: any[] = [];
+
+  //   groups.map(async group => {
+  //     const currrentUsers = await sp.web.siteGroups
+  //       .getById(Number(group.id))
+  //       .users.get();
+
+  //     users.push(
+  //       ...currrentUsers.map(currentUser => {
+  //         return {
+  //           title: currentUser.Title,
+  //           email: currentUser.Email,
+  //           userId: currentUser.Id,
+  //           groupName: group.name
+  //         };
+  //       })
+  //     );
+  //   });
+  //   console.log("users", users);
+  //   return users;
+  //   // return sp.web.siteGroups.getById(groupId).users.        get();
+  // }
+
   public async pnp_getGroupMembers(groups: any[]) {
-    let users: any[] = [];
-
-    groups.map(async group => {
-      const currrentUsers = await sp.web.siteGroups
-        .getById(Number(group.id))
-        .users.get();
-
-      users.push(
-        ...currrentUsers.map(currentUser => {
-          return {
-            title: currentUser.Title,
-            email: currentUser.Email,
-            userId: currentUser.Id,
-            groupName: group.name
-          };
-        })
-      );
-    });
-    console.log("users", users);
-    return users;
-    // return sp.web.siteGroups.getById(groupId).users.        get();
-  }
-
-  public async pnp_getGroupMembersV2(groups: any[]) {
     const users: any[] = [];
 
     for (let i = 0; i < groups.length; i++) {
-      const currrentUsers = await sp.web.siteGroups
-        .getById(Number(groups[i].id))
-        .users.get();
+      if (groups[i].id !== 0) {
+        const currrentUsers = await sp.web.siteGroups
+          .getById(Number(groups[i].id))
+          .users.get();
 
-      currrentUsers.map(currentUser => {
-        users.push({
-          title: currentUser.Title,
-          email: currentUser.Email,
-          userId: currentUser.Id,
-          groupName: groups[i].name
+        currrentUsers.map(currentUser => {
+          users.push({
+            title: currentUser.Title,
+            email: currentUser.Email,
+            userId: currentUser.Id,
+            groupName: groups[i].name
+          });
         });
-      });
+      }
     }
 
     console.log("users", users);
@@ -489,14 +533,42 @@ export class SharePointServiceManager {
       });
     });
   }
+  public pnp_update_collection_filter(
+    listTitle: string,
+    fieldFilterBy: string,
+    filterValue: string,
+    fieldToUpdate: string,
+    newValue: string
+  ) {
+    // you are getting back a collection here
+    sp.web.lists
+      .getByTitle(listTitle)
+      .items.filter(`${fieldFilterBy} eq '${filterValue}'`)
+      .get()
+      .then((items: any[]) => {
+        // see if we got something
+        if (items.length > 0) {
+          sp.web.lists
+            .getByTitle(listTitle)
+            .items.getById(items[0].Id)
+            .update({
+              [fieldToUpdate]: newValue
+            })
+            .then(result => {
+              // here you will have updated the item
+              console.log(JSON.stringify(result));
+            });
+        }
+      });
+  }
 
   public pnp_update_multiple(
-    listId: string,
+    listTitle: string,
     itemIds: any[],
     items: any[]
   ): Promise<any> {
     let web = new Web(this.context.pageContext.web.absoluteUrl);
-    let list = web.lists.getById(listId);
+    let list = web.lists.getByTitle(listTitle);
 
     return list.getListItemEntityTypeFullName().then(entityTypeFullName => {
       let batch = web.createBatch();
@@ -518,10 +590,9 @@ export class SharePointServiceManager {
     });
   }
 
-  public pnp_delete(listId: string, itemId: number): Promise<any> {
-    let web = new Web(this.context.pageContext.web.absoluteUrl);
-    return web.lists
-      .getById(listId)
+  public pnp_delete(listTitle: string, itemId: number): Promise<any> {
+    return sp.web.lists
+      .getByTitle(listTitle)
       .items.getById(itemId)
       .delete()
       .then(res => {
@@ -530,6 +601,43 @@ export class SharePointServiceManager {
       .catch(err => {
         return Promise.reject(err);
       });
+  }
+
+  public pnp_delete_multiple(
+    listTitle: string,
+    itemIds: number[]
+  ): Promise<any> {
+    const list = sp.web.lists.getByTitle(listTitle);
+
+    return list.getListItemEntityTypeFullName().then(entityTypeFullName => {
+      let batch = sp.web.createBatch();
+
+      itemIds.map(id => {
+        list.items
+          .getById(id)
+          .inBatch(batch)
+          .delete()
+          .then(b => {
+            // console.log(b);
+          });
+      });
+
+      // note requirement of "*" eTag param - or use a specific eTag value as needed
+
+      batch.execute().then(d => console.log("Done"));
+    });
+
+    // return sp.web.lists
+    //   .getByTitle(listTitle)
+    //   .items.getById(itemId)
+    //   .inBatch(batch)
+    //   .delete()
+    //   .then(res => {
+    //     return res;
+    //   })
+    //   .catch(err => {
+    //     return Promise.reject(err);
+    //   });
   }
 
   public pnp_update(

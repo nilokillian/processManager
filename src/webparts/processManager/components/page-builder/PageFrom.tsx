@@ -67,7 +67,7 @@ export default class PageForm extends React.Component<
           type={PanelType.custom}
           customWidth="420px"
           onDismiss={onCloseForm}
-          headerText={createdPageUrl ? "Template builder" : "Page Title"}
+          headerText={createdPageUrl ? "Policy page builder" : "Page Title"}
           closeButtonAriaLabel="Close"
           //onRenderHeader={this._onRenderHeaderContent}
           onRenderFooterContent={this._onRenderFooterContent}
@@ -90,44 +90,17 @@ export default class PageForm extends React.Component<
             )}
 
             {createdPageUrl && (
-              <div>
-                <Text>
-                  Click on created page, edit it and make sure you save it as a
-                  template{" "}
-                </Text>
-
+              <p>
+                <ul>
+                  <li>click on edit</li>
+                  <li>build the page a way you want</li>
+                  <li>save it as a template</li>
+                </ul>
                 <PageTemplate pageTitle={title} url={createdPageUrl} />
-              </div>
+              </p>
             )}
           </Stack>
         </Panel>
-
-        {/* <Dialog
-          hidden={!isDeleteCalloutVisible}
-          onDismiss={this._closeDeleteBtnDialog}
-          maxWidth={670}
-          dialogContentProps={{
-            type: DialogType.close,
-            title: "Are you sure ?",
-            subText:
-              "This contact might be connected to existing tracking records. Breaking connections could cause unexpected issues"
-          }}
-          modalProps={{
-            titleAriaId: this._labelId,
-            dragOptions: this._dragOptions,
-            isBlocking: false
-            // styles: { main: { maxWidth: 750 } }
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <DefaultButton
-              style={{ backgroundColor: "#dc224d", color: "white" }}
-              disabled={loading}
-              onClick={this.delete}
-              text="Delete"
-            />
-          </div>
-        </Dialog> */}
       </div>
     );
   }
@@ -195,11 +168,9 @@ export default class PageForm extends React.Component<
     } catch (error) {
       console.log(error);
       //toast.error("error");
-      this.setState({ loading: false });
       onCloseForm();
-      return;
+      throw error;
     }
+    this.setState({ loading: false });
   };
-
-  public _getCurrentItem = async () => {};
 }

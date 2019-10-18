@@ -3,10 +3,11 @@ import {
   DocumentCard,
   DocumentCardActivity,
   DocumentCardPreview,
-  DocumentCardTitle,
-  IDocumentCardPreviewProps
+  IDocumentCardPreviewProps,
+  DocumentCardDetails
 } from "office-ui-fabric-react/lib/DocumentCard";
 import { ImageFit } from "office-ui-fabric-react/lib/Image";
+import { DefaultButton } from "office-ui-fabric-react";
 
 const templateImage: ITemplateImage = {
   image: require("../../images/templateImg.png"),
@@ -32,27 +33,13 @@ export default class PageTemplate extends React.Component<
   IPageTemplateProps,
   {}
 > {
+  private _openNewTab = (url: string) => {
+    window.open(url, "_blank");
+  };
+
   constructor(props: IPageTemplateProps) {
     super(props);
   }
-
-  // private _onCheckboxChange = (
-  //   ev: React.FormEvent<HTMLElement>,
-  //   isSelected: boolean
-  // ) => {
-  //   const { pageTitle } = this.props;
-
-  //   // if (isChecked) {
-  //   //   selectedTemplate.name = pageTemplate.name;
-  //   //   selectedTemplate.title = pageTemplate.title;
-  //   //   selectedTemplate.serverRelativeUrl = pageTemplate.serverRelativeUrl;
-
-  //   //   onTemplateSelect(selectedTemplate);
-  //   // } else {
-  //   //   onTemplateSelect(selectedTemplate);
-  //   // }
-  //   onTemplateSelect(pageTemplate, isSelected);
-  // };
 
   public render(): JSX.Element {
     const { pageTitle, url } = this.props;
@@ -65,25 +52,24 @@ export default class PageTemplate extends React.Component<
             target: "_blank"
           },
           previewImageSrc: templateImage.image,
-
           imageFit: ImageFit.cover,
-          width: 300,
-          height: 340
+          width: 320,
+          height: 240
         }
       ]
     };
 
     return (
-      <div>
-        <DocumentCard>
-          <DocumentCardPreview {...previewProps} />
-          <DocumentCardTitle title="Policy" shouldTruncate={true} />
+      <DocumentCard>
+        <DocumentCardPreview {...previewProps} />
+        <DocumentCardDetails>
           <DocumentCardActivity
-            activity="Created a few minutes ago"
+            activity={previewProps.previewImages[0].linkProps.href}
             people={[{ name: pageTitle, profileImageSrc: templateImage.icon }]}
           />
-        </DocumentCard>
-      </div>
+          <DefaultButton text="Edit" onClick={() => this._openNewTab(url)} />
+        </DocumentCardDetails>
+      </DocumentCard>
     );
   }
 }

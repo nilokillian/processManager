@@ -2,16 +2,14 @@ import * as React from "react";
 import SharePointService from "../../../../services/SharePoint/SharePointService";
 import {
   DefaultButton,
-  CommandBar,
   Separator,
   Text,
   DocumentCard,
   DocumentCardActivity,
-  DocumentCardPreview,
   DocumentCardTitle,
-  IDocumentCardPreviewProps,
   Stack,
-  IStackTokens
+  IStackTokens,
+  DocumentCardDetails
 } from "office-ui-fabric-react";
 import PolicyAssignmentForm from "./PolicyAssignmentFrom";
 
@@ -87,17 +85,29 @@ export default class PolicyAssignment extends React.Component<
 
     const policies = result.map(v => {
       return {
-        id: v.Id,
+        id: v.ID,
         title: v.Title,
-        peopeleAssigned: v.PeopeleAssigned && v.PeopeleAssigned,
+        peopeleAssigned:
+          v.PeopeleAssigned &&
+          v.PeopeleAssigned.map(user => ({ id: user.ID, name: user.Title })),
         groupsAssigned:
           v.GroupAssigned &&
           v.GroupAssigned.map(group => ({ id: group.ID, name: group.Title })),
-        policyOwner: v.PolicyOwner && v.PolicyOwner.Title
+        policyOwner: { title: v.PolicyOwner.Title, email: v.PolicyOwner.EMail }
       };
     });
+    // const policies = result.map(v => {
+    //   return {
+    //     id: v.Id,
+    //     title: v.Title,
+    //     peopeleAssigned: v.PeopeleAssigned && v.PeopeleAssigned,
+    //     groupsAssigned:
+    //       v.GroupAssigned &&
+    //       v.GroupAssigned.map(group => ({ id: group.ID, name: group.Title })),
+    //     policyOwner: v.PolicyOwner && v.PolicyOwner.Title
+    //   };
+    // });
 
-    console.log("policies", policies);
     this.setState({ policies });
   };
 
@@ -108,11 +118,6 @@ export default class PolicyAssignment extends React.Component<
         <Separator>
           <Text>Policy Assignment</Text>
         </Separator>
-
-        {/* <CommandBar
-          items={this._getMenuItems()}
-          //overflowItems={this.getOverlflowItems()}
-        /> */}
         <Stack>
           <Stack
             horizontal
@@ -123,24 +128,29 @@ export default class PolicyAssignment extends React.Component<
           >
             {policies.map(p => (
               <DocumentCard>
-                {/* <DocumentCardPreview {...previewProps} /> */}
-                <DocumentCardTitle title={"kkk"} shouldTruncate={true} />
-                <DocumentCardActivity
-                  activity="Created a few minutes ago"
-                  people={[
-                    { name: p.title, profileImageSrc: templateImage.icon }
-                  ]}
-                />
-                <DefaultButton
-                  text="Assign people"
-                  onClick={() =>
-                    this.onOpenPolicyAssignmentForm(
-                      p.id,
-                      p.title,
-                      p.groupsAssigned
-                    )
-                  }
-                />
+                <DocumentCardDetails>
+                  <DocumentCardTitle title={p.title} shouldTruncate={true} />
+                  <DocumentCardActivity
+                    activity={p.policyOwner.email}
+                    people={[
+                      {
+                        name: p.policyOwner.title,
+                        profileImageSrc: templateImage.icon
+                      }
+                    ]}
+                  />
+                  <DefaultButton
+                    text="Assign people"
+                    onClick={() =>
+                      this.onOpenPolicyAssignmentForm(
+                        p.id,
+                        p.title,
+                        p.groupsAssigned,
+                        p.peopeleAssigned
+                      )
+                    }
+                  />
+                </DocumentCardDetails>
               </DocumentCard>
             ))}
           </Stack>
@@ -163,13 +173,14 @@ export default class PolicyAssignment extends React.Component<
   public onOpenPolicyAssignmentForm = (
     currentPolicyId: number,
     currentPolicyTitle: string,
-    groupsAssigned
+    groupsAssigned: any[],
+    peopeleAssigned: any[]
   ) => {
     const { currentPolicy } = this.state;
     currentPolicy.id = currentPolicyId;
     currentPolicy.name = currentPolicyTitle;
     currentPolicy.groupsAssigned = groupsAssigned;
-    //this.setState({ currentPolicy });
+    currentPolicy.peopeleAssigned = peopeleAssigned;
 
     this.setState({ isPolicyAssignmentFormOpen: true, currentPolicy });
   };

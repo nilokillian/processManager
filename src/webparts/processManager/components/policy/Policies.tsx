@@ -1,20 +1,18 @@
 import * as React from "react";
 import SharePointService from "../../../../services/SharePoint/SharePointService";
-
 import {
   DefaultButton,
   DocumentCard,
   DocumentCardActivity,
-  DocumentCardPreview,
   DocumentCardTitle,
-  IDocumentCardPreviewProps,
   Separator,
   CommandBar,
   Text,
   Stack,
-  IStackTokens
+  IStackTokens,
+  DocumentCardDetails
 } from "office-ui-fabric-react";
-import PolicyForm from "../page-builder/PolicyForm";
+import PolicyForm from "./PolicyForm";
 
 const wrapStackTokens: IStackTokens = { childrenGap: 20 };
 const templateImage: ITemplateImage = {
@@ -30,88 +28,30 @@ export interface ITemplateImage {
 export interface IPolicyState {
   polices: any[];
   isPolicyFormOpen: boolean;
-  templates: any[];
+  policyPages: any[];
+  selectedPolicyId: number;
 }
 
 export default class Policies extends React.Component<{}, IPolicyState> {
-  constructor(props: {}) {
-    super(props);
-
-    this.state = {
-      polices: [],
-      isPolicyFormOpen: false,
-      templates: []
-    };
-  }
-
-  public async componentDidMount() {
-    await this._getPolicies();
-    await this._getPolicyPagesOptions();
-  }
-
-  public onOpenPolicyForm = () => {
-    this.setState({ isPolicyFormOpen: true });
-  };
-  public onClosePolicyForm = () => {
-    this.setState({ isPolicyFormOpen: false });
-  };
-
-  public render(): JSX.Element {
-    const { polices, isPolicyFormOpen, templates } = this.state;
-    return (
-      <div>
-        <Separator>
-          <Text>Polies</Text>
-        </Separator>
-
-        <CommandBar
-          items={this._getMenuItems()}
-          //overflowItems={this.getOverlflowItems()}
-        />
-        <Stack
-          horizontal
-          horizontalAlign="space-evenly"
-          wrap
-          tokens={wrapStackTokens}
-          style={{ marginBottom: 30, marginTop: 30 }}
-        >
-          {polices.map(policy => (
-            <DocumentCard>
-              {/* <DocumentCardPreview {...previewProps} /> */}
-              <DocumentCardTitle title={policy.title} shouldTruncate={true} />
-              <DocumentCardActivity
-                activity="Created a few minutes ago"
-                people={[
-                  { name: policy.title, profileImageSrc: templateImage.icon }
-                ]}
-              />
-              <DefaultButton text="Update policy" onClick={null} />
-            </DocumentCard>
-          ))}
-        </Stack>
-        {isPolicyFormOpen && (
-          <PolicyForm
-            templates={templates}
-            onCloseForm={this.onClosePolicyForm}
-            isOpenForm={isPolicyFormOpen}
-          />
-        )}
-      </div>
-    );
-  }
-
   private _getMenuItems = () => {
     return [
       {
         key: "newPolicy",
         name: "Create new policy",
         iconProps: {
-          iconName: "EntitlementPolicy"
+          iconName: "Add"
         },
-
-        onClick: this.onOpenPolicyForm
+        onClick: this._onOpenPolicyForm
       }
     ];
+  };
+
+  private _editPolicy = (policyId: number) => {
+    this.setState({ selectedPolicyId: policyId, isPolicyFormOpen: true });
+  };
+
+  private _onOpenPolicyForm = () => {
+    this.setState({ isPolicyFormOpen: true });
   };
 
   private _getPolicies = async () => {
@@ -133,13 +73,13 @@ export default class Policies extends React.Component<{}, IPolicyState> {
       queriedField
     );
 
-    console.log("result", result);
     const polices = result.map(v => {
       return {
+        id: v.ID,
         title: v.Title,
         peopeleAssigned: v.PeopeleAssigned && v.PeopeleAssigned.Title,
         groupAssigned: v.GroupAssigned && v.GroupAssigned.Title,
-        policyOwner: v.PolicyOwner && v.PolicyOwner.Title
+        policyOwner: { title: v.PolicyOwner.Title, email: v.PolicyOwner.EMail }
       };
     });
     this.setState({ polices });
@@ -151,17 +91,92 @@ export default class Policies extends React.Component<{}, IPolicyState> {
       "Templates"
     );
 
-    const templates = result.map(template => ({
-      key: template.Name.split(".")[0],
-      title: template.Title,
-      name: template.Name
+    const policyPages = result.map(p => ({
+      key: p.Name.split(".")[0],
+      title: p.Title,
+      name: p.Name
     }));
 
-    this.setState({ templates });
+    this.setState({ policyPages });
   };
 
-  private _updateTasks = () => {
-    //get all items
-    //filter based on status
+  constructor(props: {}) {
+    super(props);
+
+    this.state = {
+      polices: [],
+      isPolicyFormOpen: false,
+      policyPages: [],
+      selectedPolicyId: null
+    };
+  }
+
+  public render(): JSX.Element {
+    const {
+      polices,
+      isPolicyFormOpen,
+      policyPages,
+      selectedPolicyId
+    } = this.state;
+    return (
+      <div>
+        <Separator>
+          <Text>Polices</Text>
+        </Separator>
+
+        <CommandBar items={this._getMenuItems()} />
+        <Stack
+          horizontal
+          horizontalAlign="space-evenly"
+          wrap
+          tokens={wrapStackTokens}
+          style={{ marginBottom: 30, marginTop: 30 }}
+        >
+          {polices.map(policy => (
+            <DocumentCard>
+              <DocumentCardDetails>
+                <DocumentCardTitle title={policy.title} shouldTruncate={true} />
+                <DocumentCardActivity
+                  activity={policy.policyOwner.email}
+                  people={[
+                    {
+                      name: policy.policyOwner.title,
+                      profileImageSrc: templateImage.icon
+                    }
+                  ]}
+                />
+                <DefaultButton
+                  text="details"
+                  onClick={() => this._editPolicy(policy.id)}
+                />
+              </DocumentCardDetails>
+            </DocumentCard>
+          ))}
+        </Stack>
+        {isPolicyFormOpen && (
+          <PolicyForm
+            selectedPolicyId={selectedPolicyId}
+            policyPages={policyPages}
+            onCloseForm={this.onClosePolicyForm}
+            resetSelectedPolicyId={this.resetSelectedPolicyId}
+            updateComponent={this._getPolicies}
+            isOpenForm={isPolicyFormOpen}
+          />
+        )}
+      </div>
+    );
+  }
+
+  public async componentDidMount() {
+    await this._getPolicies();
+    await this._getPolicyPagesOptions();
+  }
+
+  public resetSelectedPolicyId = () => {
+    this.setState({ selectedPolicyId: null });
+  };
+
+  public onClosePolicyForm = () => {
+    this.setState({ isPolicyFormOpen: false });
   };
 }

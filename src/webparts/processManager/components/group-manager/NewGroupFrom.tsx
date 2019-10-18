@@ -1,6 +1,5 @@
 import * as React from "react";
-//import { toast } from "react-toastify";
-
+import { toast } from "react-toastify";
 import SharePointService from "../../../../services/SharePoint/SharePointService";
 import {
   DefaultButton,
@@ -14,10 +13,6 @@ import {
   IStackTokens,
   TextField
 } from "office-ui-fabric-react";
-import {
-  PeoplePicker,
-  PrincipalType
-} from "@pnp/spfx-controls-react/lib/PeoplePicker";
 
 const itemAlignmentsStackTokens: IStackTokens = {
   childrenGap: 5
@@ -26,6 +21,7 @@ const itemAlignmentsStackTokens: IStackTokens = {
 export interface IGroupFormProps {
   isOpenForm: boolean;
   onCloseForm(): void;
+  updateComponent(): void;
 }
 
 export interface IGroupOwner {
@@ -97,53 +93,8 @@ export default class GroupForm extends React.Component<
               disabled={loading}
               required={true}
             />
-
-            <PeoplePicker
-              context={SharePointService.context}
-              titleText="Group owner"
-              personSelectionLimit={1}
-              groupName={""} // Leave this blank in case you want to filter from all users
-              isRequired={true}
-              selectedItems={this._getPeoplePickerItems}
-              //defaultSelectedUsers={[Email]}
-              showHiddenInUI={false}
-              principalTypes={[PrincipalType.User]}
-              resolveDelay={1000}
-
-              // peoplePickerCntrlclassName={
-              //   styles[ComponentStyles.peoplePickerStyle()]
-              // }
-              //styles={{backgroundColor: "red"}}
-            />
           </Stack>
         </Panel>
-
-        {/* <Dialog
-          hidden={!isDeleteCalloutVisible}
-          onDismiss={this._closeDeleteBtnDialog}
-          maxWidth={670}
-          dialogContentProps={{
-            type: DialogType.close,
-            title: "Are you sure ?",
-            subText:
-              "This contact might be connected to existing tracking records. Breaking connections could cause unexpected issues"
-          }}
-          modalProps={{
-            titleAriaId: this._labelId,
-            dragOptions: this._dragOptions,
-            isBlocking: false
-            // styles: { main: { maxWidth: 750 } }
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <DefaultButton
-              style={{ backgroundColor: "#dc224d", color: "white" }}
-              disabled={loading}
-              onClick={this.delete}
-              text="Delete"
-            />
-          </div>
-        </Dialog> */}
       </div>
     );
   }
@@ -152,12 +103,6 @@ export default class GroupForm extends React.Component<
     const { loading, errors } = this.state;
     return (
       <div>
-        <DefaultButton
-          disabled={loading}
-          // onClick={this._showDeleteBtnDialog}
-          text="Delete"
-        />
-
         <PrimaryButton
           onClick={this.submitForm}
           text="Save"
@@ -167,18 +112,10 @@ export default class GroupForm extends React.Component<
     );
   };
 
-  private _getPeoplePickerItems = (items: any[]) => {
-    const { data } = this.state;
-    data.owner = { name: items[0].text, id: items[0].id };
-
-    this.setState({ data });
-  };
-
   private _onChangeTextInput = (
     e: React.FormEvent<HTMLInputElement>,
     newValue?: string
   ) => {
-    // const currentFieldName = e.target["id"];
     const { data } = this.state;
 
     data.groupName = newValue;
@@ -187,75 +124,25 @@ export default class GroupForm extends React.Component<
   };
 
   private _createNewGroup = async () => {
-    const { groupName, owner } = this.state.data;
-
-    // await SharePointService.pnp_createGroup(
-    //   groupName,
-    //   SharePointService.context.pageContext.user
-    // );
-
+    const { groupName } = this.state.data;
     await SharePointService.pnp_createGroupV2(groupName);
   };
 
-  //   private _getPeoplePickerItems = (items: any[]) => {
-  //     const { data } = this.state;
-
-  //     if (items.length === 1) {
-  //       currentItem.Display_Name = items[0].text;
-  //       currentItem.Email = items[0].secondaryText.toLowerCase();
-  //       currentItem.First_Name = items[0].text.split(" ")[0];
-  //       currentItem.Last_Name = items[0].text.split(" ")[1];
-  //     } else if (items.length === 0) {
-  //       currentItem.Display_Name = "";
-  //       currentItem.Email = "";
-  //       currentItem.First_Name = "";
-  //       currentItem.Last_Name = "";
-  //     }
-
-  //     this.setState({ currentItem });
-  //   };
-
-  //   private _showDeleteBtnDialog = () => {
-  //     this.setState({ isDeleteCalloutVisible: true });
-  //   };
-
-  //   private _closeDeleteBtnDialog = () => {
-  //     this.setState({ isDeleteCalloutVisible: false });
-  //   };
-
   public submitForm = async () => {
-    const { onCloseForm } = this.props;
+    const { onCloseForm, updateComponent } = this.props;
     this.setState({ loading: true });
 
     try {
-      this._createNewGroup();
-      this.setState({ loading: false });
+      await this._createNewGroup();
+      updateComponent();
+      toast.success("created");
+      onCloseForm();
     } catch (error) {
-      console.log(error);
-      //toast.error("error");
-      this.setState({ loading: false });
+      toast.error("error");
       onCloseForm();
-      return;
+      throw error;
     }
-  };
-
-  public delete = async () => {
-    this.setState({ loading: true });
-    const { onCloseForm } = this.props;
-
-    const { data } = this.state;
-    try {
-      onCloseForm();
-      //toast.success(`${currentItem.Display_Name} has been deleted`);
-      this.setState({ loading: false });
-
-      return;
-    } catch (error) {
-      console.log(error);
-      //toast.error("error");
-      onCloseForm();
-      return;
-    }
+    this.setState({ loading: false });
   };
 
   public _getCurrentItem = async () => {};

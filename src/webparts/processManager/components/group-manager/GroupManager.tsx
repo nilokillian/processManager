@@ -14,7 +14,8 @@ import {
   IStackTokens,
   CommandBar,
   Dialog,
-  DialogType
+  DialogType,
+  IStackStyles
 } from "office-ui-fabric-react";
 import GroupForm from "./NewGroupFrom";
 import UserForm from "./AddUserFrom";
@@ -22,7 +23,11 @@ import SharePointService from "../../../../services/SharePoint/SharePointService
 
 const stackTokens: IStackTokens = { childrenGap: 12 };
 const wrapStackTokens: IStackTokens = { childrenGap: 20 };
-
+const stackStyles: IStackStyles = {
+  root: {
+    width: 300
+  }
+};
 // export interface IGroupManagerProps {
 //   selectedGroups: any[];
 // }
@@ -32,11 +37,12 @@ export interface IGroupManagerState {
   memberColumns: IColumn[];
   groups: any[];
   members: any[];
-  selectedGroupId: string;
-  selectedUserId: string;
+  selectedGroupId: number;
+  selectedUserId: number;
   isFormGroupOpen: boolean;
   isFormUserOpen: boolean;
   isDeleteFormOpen: boolean;
+  loading: boolean;
 }
 
 export default class GroupManager extends React.Component<
@@ -56,9 +62,9 @@ export default class GroupManager extends React.Component<
       case 0:
         return "";
       case 1:
-        return this._selectionForGroups.getSelection()[0].key.toString();
+        return this._selectionForGroups.getSelection()[0].key;
       default:
-        return this._selectionForGroups.getSelection()[0].key.toString();
+        return this._selectionForGroups.getSelection()[0].key;
     }
   };
 
@@ -71,9 +77,9 @@ export default class GroupManager extends React.Component<
       case 0:
         return "";
       case 1:
-        return this._selectionForUsers.getSelection()[0].key.toString();
+        return this._selectionForUsers.getSelection()[0].key;
       default:
-        return this._selectionForUsers.getSelection()[0].key.toString();
+        return this._selectionForUsers.getSelection()[0].key;
     }
   };
 
@@ -82,7 +88,9 @@ export default class GroupManager extends React.Component<
 
     this._selectionForGroups = new Selection({
       onSelectionChanged: async () => {
-        this.setState({ selectedGroupId: this._getSelectionForGroups() });
+        this.setState({
+          selectedGroupId: Number(this._getSelectionForGroups())
+        });
 
         await this._getGroupMembers(Number(this._getSelectionForGroups()));
       }
@@ -90,7 +98,7 @@ export default class GroupManager extends React.Component<
 
     this._selectionForUsers = new Selection({
       onSelectionChanged: () => {
-        this.setState({ selectedUserId: this._getSelectionForUsers() });
+        this.setState({ selectedUserId: Number(this._getSelectionForUsers()) });
       }
     });
 
@@ -113,15 +121,6 @@ export default class GroupManager extends React.Component<
         maxWidth: 50,
         isResizable: false
       }
-      //   {
-      //     key: "ownerTitle",
-      //     name: "Owner Title",
-      //     fieldName: "ownerTitle",
-      //     minWidth: 100,
-      //     maxWidth: 400,
-      //     isResizable: true
-
-      //   }
     ];
 
     const _memberColumns: IColumn[] = [
@@ -157,17 +156,18 @@ export default class GroupManager extends React.Component<
     this.state = {
       groups: [],
       members: [],
-      selectedGroupId: "",
-      selectedUserId: "",
+      selectedGroupId: null,
+      selectedUserId: null,
       groupColumns: _groupColumns,
       memberColumns: _memberColumns,
       isFormGroupOpen: false,
       isFormUserOpen: false,
-      isDeleteFormOpen: false
+      isDeleteFormOpen: false,
+      loading: false
     };
   }
 
-  private _getGroups = async () => {
+  public getGroups = async () => {
     const result = await SharePointService.pnp_getGroups();
     const groups = result.map(group => ({
       key: group.Id,
@@ -181,8 +181,8 @@ export default class GroupManager extends React.Component<
             items: [
               {
                 key: "delete",
-                text: "Delete"
-                //onClick: this._onOpenDeleteForm
+                text: "Delete",
+                onClick: this._onOpenDeleteForm
               }
             ]
           }}
@@ -194,12 +194,14 @@ export default class GroupManager extends React.Component<
   };
 
   private _getGroupMembers = async (groupId: number) => {
-    const result = await SharePointService.pnp_getGroupMembers([groupId]);
-    console.log("resultM", result);
+    const result = await SharePointService.pnp_getGroupMembers([
+      { id: groupId, groupName: "" }
+    ]);
+
     const members = result.map(member => ({
-      key: member.Id,
-      displayName: member.Title,
-      email: member.Email,
+      key: member.userId,
+      displayName: member.title,
+      email: member.email,
       edit: (
         <IconButton
           menuProps={{
@@ -207,7 +209,7 @@ export default class GroupManager extends React.Component<
             items: [
               {
                 key: "delete",
-                text: "Details",
+                text: "Delete",
                 onClick: this._onOpenDeleteForm
               }
             ]
@@ -221,22 +223,42 @@ export default class GroupManager extends React.Component<
 
   private _deleteGroupMember = async () => {
     const { selectedGroupId, selectedUserId } = this.state;
-
+    this.setState({ loading: true });
     try {
-      const result = await SharePointService.pnp_deleteGroupMember(
-        Number(selectedGroupId),
-        Number(selectedUserId)
+      await SharePointService.pnp_deleteGroupMember(
+        selectedGroupId,
+        selectedUserId
       );
+      await this._getGroupMembers(Number(this._getSelectionForGroups()));
       toast.success("deleted");
       this._onCloseDeleteForm();
     } catch (error) {
       toast.error("error");
       this._onCloseDeleteForm();
-      console.log("error");
+      throw error;
     }
+    this.setState({ loading: false });
+  };
+
+  private _deleteGroup = async () => {
+    const { selectedGroupId } = this.state;
+    this.setState({ loading: true });
+    try {
+      await SharePointService.pnp_deleteGroup(Number(selectedGroupId));
+      this.setState({ selectedGroupId: null });
+      await this.getGroups();
+      toast.success("deleted");
+      this._onCloseDeleteForm();
+    } catch (error) {
+      toast.error("error");
+      this._onCloseDeleteForm();
+      throw error;
+    }
+    this.setState({ loading: false });
   };
 
   private _getMenuItems = () => {
+    const { selectedGroupId } = this.state;
     return [
       {
         key: "newItem",
@@ -254,15 +276,11 @@ export default class GroupManager extends React.Component<
         iconProps: {
           iconName: "AddGroup"
         },
-
+        disabled: !selectedGroupId,
         onClick: this.onOpenUserForm
       }
     ];
   };
-
-  public async componentDidMount() {
-    await this._getGroups();
-  }
 
   public render(): JSX.Element {
     const {
@@ -271,23 +289,16 @@ export default class GroupManager extends React.Component<
       groups,
       members,
       selectedGroupId,
+      selectedUserId,
       isFormGroupOpen,
       isFormUserOpen,
-      isDeleteFormOpen
+      isDeleteFormOpen,
+      loading
     } = this.state;
     //selectionId && this._getGroupMembers(Number(selectionId));
     // background: "#f3f3f3"
     return (
       <div>
-        <DefaultButton
-          onClick={async () => await SharePointService.pnp_getGroupOwner()}
-          text="getOwner"
-        />
-        <DefaultButton
-          onClick={async () => await SharePointService.pnp_createGroup()}
-          text="ceate"
-        />
-
         <Separator>
           <Text>Group manager</Text>
         </Separator>
@@ -296,67 +307,67 @@ export default class GroupManager extends React.Component<
           items={this._getMenuItems()}
           //overflowItems={this.getOverlflowItems()}
         />
+
         <Stack
           horizontal
-          //horizontalAlign="space-evenly"
-          wrap
+          horizontalAlign="space-evenly"
           tokens={wrapStackTokens}
           style={{ marginBottom: 30, marginTop: 30 }}
         >
-          {/* <div className={exampleChildClass}>{selectionDetails}</div> */}
-          {/* <TextField
-          className={exampleChildClass}
-          label="Filter by name:"
-          onChange={this._onFilter}
-          styles={{ root: { maxWidth: "300px" } }}
-        /> */}
-
-          <Stack verticalAlign="space-around" tokens={stackTokens}>
+          <Stack.Item styles={stackStyles}>
             <Text>Groups</Text>
-
-            <DetailsList
-              items={groups}
-              columns={groupColumns}
-              setKey="setOfGroups"
-              layoutMode={DetailsListLayoutMode.justified}
-              selection={this._selectionForGroups}
-              selectionMode={SelectionMode.single}
-              selectionPreservedOnEmptyClick={true}
-              ariaLabelForSelectionColumn="Toggle selection"
-              ariaLabelForSelectAllCheckbox="Toggle selection for all items"
-              checkButtonAriaLabel="Row checkbox"
-              //onItemInvoked={this._onItemInvoked}
-            />
-          </Stack>
-
-          <Stack tokens={stackTokens}>
+          </Stack.Item>
+          <Stack.Item styles={stackStyles}>
             <Text>
               {selectedGroupId
                 ? `Members of ${
-                    groups.find(g => g.key.toString() === selectedGroupId)
-                      .groupName
+                    groups.find(g => g.key === selectedGroupId).groupName
                   }`
                 : "Select a group to display its members"}
             </Text>
-            <DetailsList
-              items={members}
-              columns={memberColumns}
-              setKey="setOfMembers"
-              layoutMode={DetailsListLayoutMode.justified}
-              selection={this._selectionForUsers}
-              selectionMode={SelectionMode.single}
-              selectionPreservedOnEmptyClick={true}
-              ariaLabelForSelectionColumn="Members"
-              ariaLabelForSelectAllCheckbox="Toggle selection for all items"
-              checkButtonAriaLabel="Row checkbox"
-              //onItemInvoked={this._onItemInvoked}
-            />
-          </Stack>
+          </Stack.Item>
+        </Stack>
+
+        <Stack
+          horizontal
+          horizontalAlign="space-evenly"
+          // wrap
+          tokens={wrapStackTokens}
+          style={{ marginBottom: 30, marginTop: 30 }}
+        >
+          <DetailsList
+            items={groups}
+            columns={groupColumns}
+            setKey="setOfGroups"
+            layoutMode={DetailsListLayoutMode.justified}
+            selection={this._selectionForGroups}
+            selectionMode={SelectionMode.single}
+            selectionPreservedOnEmptyClick={true}
+            ariaLabelForSelectionColumn="Toggle selection"
+            ariaLabelForSelectAllCheckbox="Toggle selection for all items"
+            checkButtonAriaLabel="Row checkbox"
+            //onItemInvoked={this._onItemInvoked}
+          />
+
+          <DetailsList
+            items={members}
+            columns={memberColumns}
+            setKey="setOfMembers"
+            layoutMode={DetailsListLayoutMode.justified}
+            selection={this._selectionForUsers}
+            selectionMode={SelectionMode.single}
+            selectionPreservedOnEmptyClick={true}
+            ariaLabelForSelectionColumn="Members"
+            ariaLabelForSelectAllCheckbox="Toggle selection for all items"
+            checkButtonAriaLabel="Row checkbox"
+            //onItemInvoked={this._onItemInvoked}
+          />
         </Stack>
 
         {isFormGroupOpen && (
           <GroupForm
             onCloseForm={this.onCloseGroupForm}
+            updateComponent={this.getGroups}
             isOpenForm={isFormGroupOpen}
           />
         )}
@@ -365,40 +376,54 @@ export default class GroupManager extends React.Component<
           <UserForm
             groupId={Number(selectedGroupId)}
             onCloseForm={this.onCloseUserForm}
+            updateGroupMembers={this.updateGroupMembers}
             isOpenForm={isFormUserOpen}
           />
         )}
 
-        {isDeleteFormOpen && (
-          <Dialog
-            hidden={!isDeleteFormOpen}
-            onDismiss={this._onCloseDeleteForm}
-            maxWidth={670}
-            dialogContentProps={{
-              type: DialogType.close,
-              title: "Are you sure ?",
-              subText: ""
-            }}
-            //   modalProps={{
-            //     titleAriaId: this._labelId,
-            //     dragOptions: this._dragOptions,
-            //     isBlocking: false
-            //     // styles: { main: { maxWidth: 750 } }
-            //   }}
-          >
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <DefaultButton
-                style={{ backgroundColor: "#dc224d", color: "white" }}
-                //disabled={loading}
-                onClick={this._deleteGroupMember}
-                text="Delete"
-              />
-            </div>
-          </Dialog>
-        )}
+        <Dialog
+          hidden={!isDeleteFormOpen}
+          onDismiss={this._onCloseDeleteForm}
+          maxWidth={670}
+          dialogContentProps={{
+            type: DialogType.close,
+            title: "Are you sure ?",
+            subText: ""
+          }}
+          //   modalProps={{
+          //     titleAriaId: this._labelId,
+          //     dragOptions: this._dragOptions,
+          //     isBlocking: false
+          //     // styles: { main: { maxWidth: 750 } }
+          //   }}
+        >
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <DefaultButton
+              style={{ backgroundColor: "#dc224d", color: "white" }}
+              disabled={loading}
+              onClick={
+                selectedGroupId && selectedUserId
+                  ? this._deleteGroupMember
+                  : this._deleteGroup
+              }
+              text="Delete"
+            />
+          </div>
+        </Dialog>
       </div>
     );
   }
+
+  public async componentDidMount() {
+    await this.getGroups();
+  }
+  public clearUsrSelection() {
+    this.setState({ selectedUserId: null });
+  }
+
+  public updateGroupMembers = () => {
+    this._getGroupMembers(Number(this._getSelectionForGroups()));
+  };
 
   private _onOpenDeleteForm = () => {
     this.setState({ isDeleteFormOpen: true });

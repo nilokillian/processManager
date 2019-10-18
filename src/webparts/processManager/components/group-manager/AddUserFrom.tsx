@@ -1,5 +1,5 @@
 import * as React from "react";
-//import { toast } from "react-toastify";
+import { toast } from "react-toastify";
 
 import SharePointService from "../../../../services/SharePoint/SharePointService";
 import {
@@ -27,6 +27,7 @@ export interface IUserFormProps {
   groupId: number;
   isOpenForm: boolean;
   onCloseForm(): void;
+  updateGroupMembers(): void;
 }
 
 export interface IUserFormState {
@@ -78,16 +79,6 @@ export default class UserForm extends React.Component<
             //  styles={stackContainerStyles}
             tokens={itemAlignmentsStackTokens}
           >
-            {/* <TextField
-              id="Title"
-              label="Title"
-              value={data.groupName}
-              onChange={this._onChangeTextInput}
-              //styles={ComponentStyles.textInputStyle()}
-              disabled={loading}
-              required={true}
-            /> */}
-
             <PeoplePicker
               context={SharePointService.context}
               titleText="Users"
@@ -107,33 +98,6 @@ export default class UserForm extends React.Component<
             />
           </Stack>
         </Panel>
-
-        {/* <Dialog
-          hidden={!isDeleteCalloutVisible}
-          onDismiss={this._closeDeleteBtnDialog}
-          maxWidth={670}
-          dialogContentProps={{
-            type: DialogType.close,
-            title: "Are you sure ?",
-            subText:
-              "This contact might be connected to existing tracking records. Breaking connections could cause unexpected issues"
-          }}
-          modalProps={{
-            titleAriaId: this._labelId,
-            dragOptions: this._dragOptions,
-            isBlocking: false
-            // styles: { main: { maxWidth: 750 } }
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <DefaultButton
-              style={{ backgroundColor: "#dc224d", color: "white" }}
-              disabled={loading}
-              onClick={this.delete}
-              text="Delete"
-            />
-          </div>
-        </Dialog> */}
       </div>
     );
   }
@@ -142,12 +106,6 @@ export default class UserForm extends React.Component<
     const { loading, errors } = this.state;
     return (
       <div>
-        <DefaultButton
-          disabled={loading}
-          // onClick={this._showDeleteBtnDialog}
-          text="Delete"
-        />
-
         <PrimaryButton
           onClick={this.submitForm}
           text="Save"
@@ -161,8 +119,6 @@ export default class UserForm extends React.Component<
     //const { users } = this.state;
 
     const users = items.map(item => item.id);
-
-    //data.owner = { name: items[0].text, id: items[0].id };
 
     this.setState({ users });
   };
@@ -206,21 +162,20 @@ export default class UserForm extends React.Component<
   //   };
 
   public submitForm = async () => {
-    const { onCloseForm, groupId } = this.props;
+    const { onCloseForm, groupId, updateGroupMembers } = this.props;
     const { users } = this.state;
     this.setState({ loading: true });
 
     try {
-      SharePointService.pnp_addGroupMember(groupId, users);
-      this.setState({ loading: false });
-    } catch (error) {
-      console.log(error);
-      //toast.error("error");
-      this.setState({ loading: false });
+      await SharePointService.pnp_addGroupMember(groupId, users);
       onCloseForm();
-      return;
+      updateGroupMembers();
+      toast.success("created");
+    } catch (error) {
+      toast.error("error");
+      onCloseForm();
+      throw error;
     }
+    this.setState({ loading: false });
   };
-
-  public _getCurrentItem = async () => {};
 }
