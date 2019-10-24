@@ -1,14 +1,8 @@
 import * as React from "react";
-//import { toast } from "react-toastify";
-
+import { toast } from "react-toastify";
 import SharePointService from "../../../../services/SharePoint/SharePointService";
 import {
-  DefaultButton,
-  Dialog,
   PrimaryButton,
-  ContextualMenu,
-  DialogType,
-  Text,
   Panel,
   PanelType,
   Stack,
@@ -37,12 +31,6 @@ export default class PageForm extends React.Component<
   IPageFormProps,
   IPageFormState
 > {
-  private _dragOptions = {
-    moveMenuItemText: "Move",
-    closeMenuItemText: "Close",
-    menu: ContextualMenu
-  };
-
   constructor(props: IPageFormProps) {
     super(props);
 
@@ -69,21 +57,15 @@ export default class PageForm extends React.Component<
           onDismiss={onCloseForm}
           headerText={createdPageUrl ? "Policy page builder" : "Page Title"}
           closeButtonAriaLabel="Close"
-          //onRenderHeader={this._onRenderHeaderContent}
           onRenderFooterContent={this._onRenderFooterContent}
-          //styles={ComponentStyles.formPanelStyle}
         >
-          <Stack
-            //  styles={stackContainerStyles}
-            tokens={itemAlignmentsStackTokens}
-          >
+          <Stack tokens={itemAlignmentsStackTokens}>
             {!createdPageUrl && (
               <TextField
                 id="Title"
                 label="Title"
                 value={title}
                 onChange={this._onChangeTextInput}
-                //styles={ComponentStyles.textInputStyle()}
                 disabled={loading}
                 required={true}
               />
@@ -94,7 +76,7 @@ export default class PageForm extends React.Component<
                 <ul>
                   <li>click on edit</li>
                   <li>build the page a way you want</li>
-                  <li>save it as a template</li>
+                  <li>save it</li>
                 </ul>
                 <PageTemplate pageTitle={title} url={createdPageUrl} />
               </p>
@@ -106,7 +88,7 @@ export default class PageForm extends React.Component<
   }
 
   private _onRenderFooterContent = () => {
-    const { loading, errors, createdPageUrl } = this.state;
+    const { loading, createdPageUrl } = this.state;
     const { onCloseForm } = this.props;
     return (
       <div>
@@ -163,11 +145,11 @@ export default class PageForm extends React.Component<
 
     try {
       const pageTitle = await SharePointService.pnp_CreatePage(title);
+      toast.success("created");
       const createdPageUrl = `${SharePointService.context.pageContext.web.absoluteUrl}/SitePages/${pageTitle.title}.aspx`;
       this.setState({ loading: false, createdPageUrl });
     } catch (error) {
-      console.log(error);
-      //toast.error("error");
+      toast.error("error");
       onCloseForm();
       throw error;
     }

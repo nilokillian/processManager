@@ -40,6 +40,7 @@ export interface IPolicyAssignmentState {
   currentPolicy: {
     id: number;
     name: string;
+    policyPageTitle: string;
     groupsAssigned: IGroupsAssigned[];
     peopeleAssigned: IPeopeleAssigned[];
   };
@@ -58,6 +59,7 @@ export default class PolicyAssignment extends React.Component<
       currentPolicy: {
         id: null,
         name: "",
+        policyPageTitle: "",
         groupsAssigned: [],
         peopeleAssigned: []
       }
@@ -93,7 +95,8 @@ export default class PolicyAssignment extends React.Component<
         groupsAssigned:
           v.GroupAssigned &&
           v.GroupAssigned.map(group => ({ id: group.ID, name: group.Title })),
-        policyOwner: { title: v.PolicyOwner.Title, email: v.PolicyOwner.EMail }
+        policyOwner: { title: v.PolicyOwner.Title, email: v.PolicyOwner.EMail },
+        policyPageTitle: v.PolicyPagesTitle
       };
     });
     // const policies = result.map(v => {
@@ -145,6 +148,7 @@ export default class PolicyAssignment extends React.Component<
                       this.onOpenPolicyAssignmentForm(
                         p.id,
                         p.title,
+                        p.policyPageTitle,
                         p.groupsAssigned,
                         p.peopeleAssigned
                       )
@@ -173,6 +177,7 @@ export default class PolicyAssignment extends React.Component<
   public onOpenPolicyAssignmentForm = (
     currentPolicyId: number,
     currentPolicyTitle: string,
+    policyPageTitle: string,
     groupsAssigned: any[],
     peopeleAssigned: any[]
   ) => {
@@ -181,6 +186,7 @@ export default class PolicyAssignment extends React.Component<
     currentPolicy.name = currentPolicyTitle;
     currentPolicy.groupsAssigned = groupsAssigned;
     currentPolicy.peopeleAssigned = peopeleAssigned;
+    currentPolicy.policyPageTitle = policyPageTitle;
 
     this.setState({ isPolicyAssignmentFormOpen: true, currentPolicy });
   };

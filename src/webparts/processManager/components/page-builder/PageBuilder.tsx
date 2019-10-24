@@ -10,31 +10,21 @@ import {
   Separator,
   Stack,
   IStackTokens,
-  MarqueeSelection,
   DetailsList,
   DetailsListLayoutMode,
   Selection,
   IColumn,
-  TextField,
   CommandBar,
   IconButton,
   SelectionMode,
   Dialog,
-  DialogType,
-  IDetailsRowProps,
-  DetailsRow,
-  IDetailsRowStyles
+  DialogType
 } from "office-ui-fabric-react";
 import SharePointService from "../../../../services/SharePoint/SharePointService";
 import PageForm from "../page-builder/PageFrom";
 
 const stackTokens: IStackTokens = { childrenGap: 12 };
 const wrapStackTokens: IStackTokens = { childrenGap: 20 };
-
-const exampleChildClass = mergeStyles({
-  display: "block",
-  marginBottom: "10px"
-});
 
 export interface IPolicy {
   Title: string;
@@ -72,17 +62,8 @@ export default class PageBuilder extends React.Component<
     }
   };
 
-  private _isPolicyPagesActivated = (item): boolean => {
-    return this.state.policies.some(
-      policy => policy.PolicyPagesTitle === item.name.split(".")[0]
-    );
-  };
-
   private _getPolicyPages = async () => {
-    const result = await SharePointService.getPolicyPages(
-      "SitePages",
-      "Templates"
-    );
+    const result = await SharePointService.getPolicyPages("SitePages");
     const policies = await this._getPolicy();
 
     const getPolicyTitle = (pageTitle: string) => {
@@ -150,21 +131,6 @@ export default class PageBuilder extends React.Component<
     return policies;
   };
 
-  private _onRenderRow = (props: IDetailsRowProps): JSX.Element => {
-    const customStyles: Partial<IDetailsRowStyles> = {};
-    console.log(props.item.activated);
-    if (props.item.activated) {
-      customStyles.root = [
-        "root",
-        {
-          backgroundColor: "#b4f1b4"
-        }
-      ];
-    }
-
-    return <DetailsRow {...props} styles={customStyles} />;
-  };
-
   private _onOpenDeleteForm = () => {
     this.setState({ isDeleteFormOpen: true });
   };
@@ -179,7 +145,6 @@ export default class PageBuilder extends React.Component<
     try {
       await SharePointService.deletePolicyPage(
         "SitePages",
-        "Templates",
         selectedPolicyPageName
       );
       this._updatePolicies();
@@ -247,21 +212,6 @@ export default class PageBuilder extends React.Component<
       },
 
       {
-        key: "activeted",
-        name: "Activeted",
-        fieldName: "activeted",
-        minWidth: 100,
-        maxWidth: 400,
-        isResizable: true,
-        onRender: item => {
-          return (
-            <span>{this._isPolicyPagesActivated(item) ? "Yes" : "No"}</span>
-          );
-        }
-        //onColumnClick: this._onColumnClick
-      },
-
-      {
         key: "policy",
         name: "Policy",
         fieldName: "policy",
@@ -323,8 +273,6 @@ export default class PageBuilder extends React.Component<
               ariaLabelForSelectionColumn="Toggle selection"
               ariaLabelForSelectAllCheckbox="Toggle selection for all items"
               checkButtonAriaLabel="Row checkbox"
-              onRenderRow={this._onRenderRow}
-              //onItemInvoked={this._onItemInvoked}
             />
           </Stack>
         </Stack>

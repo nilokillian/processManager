@@ -1,40 +1,24 @@
-// import { DefaultButton, Stack, IStackTokens } from "office-ui-fabric-react";
-// import { PageTemplate } from "./PageTemplate";
-
 import * as React from "react";
-import { mergeStyles } from "office-ui-fabric-react/lib/Styling";
-
+import { toast } from "react-toastify";
 import {
   Text,
   DefaultButton,
   Separator,
   Stack,
   IStackTokens,
-  MarqueeSelection,
   DetailsList,
   DetailsListLayoutMode,
   Selection,
   IColumn,
-  TextField,
-  CommandBar,
   IconButton,
   SelectionMode,
   Dialog,
   DialogType,
-  IDetailsRowProps,
-  DetailsRow,
-  IDetailsRowStyles,
   Toggle
 } from "office-ui-fabric-react";
 import SharePointService from "../../../../services/SharePoint/SharePointService";
 
-const stackTokens: IStackTokens = { childrenGap: 12 };
 const wrapStackTokens: IStackTokens = { childrenGap: 20 };
-
-const exampleChildClass = mergeStyles({
-  display: "block",
-  marginBottom: "10px"
-});
 
 export interface IComletedTask {
   title: string;
@@ -56,80 +40,46 @@ export interface IActiveTask {
 }
 
 export interface ITaskManagerState {
-  activeTaskColumns: IColumn[];
-  completedTaskColumns: IColumn[];
-  activeTasks: IActiveTask[];
-  completedTasks: IComletedTask[];
-  selectedActiveTaskId: string;
-  selectedCompletedTaskId: string;
-  isActiveTaskFormOpen: boolean;
-  isCompletedTaskFormOpen: boolean;
+  taskColumns: IColumn[];
+  tasks: IActiveTask[];
+  selectedTaskId: number;
+  isTaskFormOpen: boolean;
   isDeleteFormOpen: boolean;
   isCompetedTasks: boolean;
+  loading: boolean;
 }
 
 export default class TaskManager extends React.Component<
   {},
   ITaskManagerState
 > {
-  private _allItems: any[];
-  private _selectionForActiveTasks: Selection;
-  private _selectionForCompletedTasks: Selection;
+  private _selectionForTasks: Selection;
 
-  private _getSelectionForActiveTasks = () => {
-    const selectionCount = this._selectionForActiveTasks.getSelectedCount();
-    // if (selectionCount !== 0)
-    //   return (this._selection.getSelection()[0] as ITrackingRecordsItem).id;
+  private _getSelectionForTasks = () => {
+    const selectionCount = this._selectionForTasks.getSelectedCount();
 
     switch (selectionCount) {
       case 0:
-        return "";
+        return null;
       case 1:
-        return this._selectionForActiveTasks.getSelection()[0].key.toString();
+        return this._selectionForTasks.getSelection()[0].key;
       default:
-        return this._selectionForActiveTasks.getSelection()[0].key.toString();
-    }
-  };
-
-  private _getSelectionForCompletedTasks = () => {
-    const selectionCount = this._selectionForCompletedTasks.getSelectedCount();
-    // if (selectionCount !== 0)
-    //   return (this._selection.getSelection()[0] as ITrackingRecordsItem).id;
-
-    switch (selectionCount) {
-      case 0:
-        return "";
-      case 1:
-        return this._selectionForCompletedTasks
-          .getSelection()[0]
-          .key.toString();
-      default:
-        return this._selectionForCompletedTasks
-          .getSelection()[0]
-          .key.toString();
+        return this._selectionForTasks.getSelection()[0].key;
     }
   };
 
   constructor(props: {}) {
     super(props);
 
-    this._selectionForActiveTasks = new Selection({
+    this._selectionForTasks = new Selection({
       onSelectionChanged: async () => {
         this.setState({
-          selectedActiveTaskId: this._getSelectionForActiveTasks()
+          selectedTaskId: Number(this._getSelectionForTasks())
         });
       }
     });
 
-    this._selectionForCompletedTasks = new Selection({
-      onSelectionChanged: async () => {
-        this.setState({
-          selectedCompletedTaskId: this._getSelectionForCompletedTasks()
-        });
-      }
-    });
-
-    const _activeTaskColumns: IColumn[] = [
+    const _taskColumns: IColumn[] = [
       {
         key: "title",
         name: "Title",
@@ -147,15 +97,6 @@ export default class TaskManager extends React.Component<
         minWidth: 50,
         maxWidth: 50,
         isResizable: false
-      },
-      {
-        key: "userId",
-        name: "User ID",
-        fieldName: "userId",
-        minWidth: 70,
-        maxWidth: 100,
-        isResizable: true
-        //onColumnClick: this._onColumnClick
       },
 
       {
@@ -187,77 +128,9 @@ export default class TaskManager extends React.Component<
         //onColumnClick: this._onColumnClick
       },
       {
-        key: "userGroupTitle",
-        name: "User Group",
-        fieldName: "userGroupTitle",
-        minWidth: 100,
-        maxWidth: 400,
-        isResizable: true
-        //onColumnClick: this._onColumnClick
-      }
-    ];
-
-    const _completedTaskColumns: IColumn[] = [
-      {
-        key: "title",
-        name: "Title",
-        fieldName: "title",
-        minWidth: 100,
-        maxWidth: 400,
-        isResizable: true
-        //onColumnClick: this._onColumnClick
-      },
-
-      {
-        key: "edit",
-        name: "",
-        fieldName: "edit",
-        minWidth: 50,
-        maxWidth: 50,
-        isResizable: false
-      },
-      {
-        key: "userId",
-        name: "User ID",
-        fieldName: "userId",
-        minWidth: 70,
-        maxWidth: 100,
-        isResizable: true
-        //onColumnClick: this._onColumnClick
-      },
-
-      {
-        key: "email",
-        name: "Email",
-        fieldName: "email",
-        minWidth: 100,
-        maxWidth: 400,
-        isResizable: true
-        //onColumnClick: this._onColumnClick
-      },
-
-      {
         key: "acknowledgeDate",
         name: "Acknowledge Date",
         fieldName: "acknowledgeDate",
-        minWidth: 100,
-        maxWidth: 400,
-        isResizable: true
-        //onColumnClick: this._onColumnClick
-      },
-      {
-        key: "policy",
-        name: "Policy",
-        fieldName: "policy",
-        minWidth: 100,
-        maxWidth: 400,
-        isResizable: true
-        //onColumnClick: this._onColumnClick
-      },
-      {
-        key: "userGroupTitle",
-        name: "User Group",
-        fieldName: "userGroupTitle",
         minWidth: 100,
         maxWidth: 400,
         isResizable: true
@@ -271,105 +144,89 @@ export default class TaskManager extends React.Component<
         maxWidth: 400,
         isResizable: true
         //onColumnClick: this._onColumnClick
+      },
+
+      {
+        key: "userGroupTitle",
+        name: "User Group",
+        fieldName: "userGroupTitle",
+        minWidth: 100,
+        maxWidth: 400,
+        isResizable: true
+        //onColumnClick: this._onColumnClick
       }
     ];
 
     this.state = {
-      activeTaskColumns: _activeTaskColumns,
-      completedTaskColumns: _completedTaskColumns,
-      activeTasks: [],
-      completedTasks: [],
-      selectedActiveTaskId: "",
-      selectedCompletedTaskId: "",
-      isActiveTaskFormOpen: false,
-      isCompletedTaskFormOpen: false,
+      taskColumns: _taskColumns,
+      tasks: [],
+      selectedTaskId: null,
+      isTaskFormOpen: false,
       isDeleteFormOpen: false,
-      isCompetedTasks: false
+      isCompetedTasks: false,
+      loading: false
     };
   }
 
-  private _getComletedTasks = async () => {
-    const result = await SharePointService.pnp_getListItems("CompletedTasks");
+  private _deleteTask = async () => {
+    const { selectedTaskId } = this.state;
+    this.setState({ loading: true });
+    try {
+      await SharePointService.pnp_delete("UserTasks", selectedTaskId);
 
-    const completedTasks = result.value.map(
-      task =>
-        ({
-          key: task.ID,
-          title: task.Title,
-          userId: task.UserId.toString(),
-          edit: (
-            <IconButton
-              menuProps={{
-                shouldFocusOnMount: true,
-                items: [
-                  {
-                    key: "delete",
-                    text: "Delete"
-                    //onClick: this._onOpenDeleteForm
-                  }
-                ]
-              }}
-            />
-          ),
-          email: task.Email,
-          acknowledgeDate: task.AcknowledgeDate,
-          policy: task.Policy,
-          userGroupTitle: task.UserGroupTitle,
-          status: task.Status
-        } as IComletedTask)
-    );
+      toast.success("deleted");
+      this._getTasks();
 
-    this.setState({ completedTasks });
+      this._onCloseDeleteForm();
+    } catch (error) {
+      toast.error("error");
+      this._onCloseDeleteForm();
+      throw error;
+    }
+    this.setState({ loading: false });
   };
 
-  private _getActiveTasks = async () => {
-    const result = await SharePointService.pnp_getListItems("ActiveTasks");
+  private _getTasks = async () => {
+    const result = await SharePointService.pnp_getListItems("UserTasks");
 
-    const activeTasks = result.value.map(
-      task =>
-        ({
-          key: task.ID,
-          title: task.Title,
-          userId: task.UserId.toString(),
-          edit: (
-            <IconButton
-              menuProps={{
-                shouldFocusOnMount: true,
-                items: [
-                  {
-                    key: "delete",
-                    text: "Delete"
-                    //onClick: this._onOpenDeleteForm
-                  }
-                ]
-              }}
-            />
-          ),
-          email: task.Email,
-          assignmentDate: task.AssignmentDate,
-          policy: task.Policy,
-          userGroupTitle: task.UserGroupTitle
-        } as IActiveTask)
-    );
+    const tasks = result.value.map(task => ({
+      key: task.ID,
+      title: task.Title,
+      userId: task.UserId.toString(),
+      edit: (
+        <IconButton
+          menuProps={{
+            shouldFocusOnMount: true,
+            items: [
+              {
+                key: "delete",
+                text: "Delete",
+                onClick: this._onOpenDeleteForm
+              }
+            ]
+          }}
+        />
+      ),
+      email: task.Email,
+      assignmentDate: task.AssignmentDate,
+      acknowledgeDate: task.AcknowledgeDate,
+      policy: task.Policy,
+      userGroupTitle: task.UserGroupTitle,
+      status: task.Status
+    }));
 
-    this.setState({ activeTasks });
+    this.setState({ tasks });
   };
 
   public async componentDidMount() {
-    await this._getActiveTasks();
-    await this._getComletedTasks();
+    await this._getTasks();
   }
 
   public render(): JSX.Element {
     const {
-      activeTaskColumns,
-      completedTaskColumns,
-      activeTasks,
-      completedTasks,
-      selectedActiveTaskId,
-      selectedCompletedTaskId,
-      isActiveTaskFormOpen,
-      isCompletedTaskFormOpen,
+      taskColumns,
+      tasks,
+      loading,
       isDeleteFormOpen,
       isCompetedTasks
     } = this.state;
@@ -379,61 +236,50 @@ export default class TaskManager extends React.Component<
         <Separator>
           <Text>Task manager</Text>
         </Separator>
-        <Toggle
-          label="Tasks"
-          defaultChecked
-          onText="on"
-          offText="off"
-          onChange={this._onCompetedTasks}
-        />
+
         <Stack
           horizontal
-          //horizontalAlign="space-evenly"
+          horizontalAlign="space-evenly"
+          tokens={wrapStackTokens}
+          style={{ marginBottom: 30, marginTop: 30 }}
+        >
+          <Toggle
+            label="Completed tasks"
+            inlineLabel
+            defaultChecked={isCompetedTasks}
+            onText=""
+            offText=""
+            onChange={this._onCompetedTasks}
+          />
+          <Toggle
+            label="Canceled tasks"
+            inlineLabel
+            defaultChecked={isCompetedTasks}
+            onText=""
+            offText=""
+            onChange={this._onCompetedTasks}
+          />
+        </Stack>
+
+        <Stack
+          horizontal
           wrap
           tokens={wrapStackTokens}
           style={{ marginBottom: 30, marginTop: 30 }}
         >
-          {/* <div className={exampleChildClass}>{selectionDetails}</div> */}
-          {/* <TextField
-          className={exampleChildClass}
-          label="Filter by name:"
-          onChange={this._onFilter}
-          styles={{ root: { maxWidth: "300px" } }}
-        /> */}
-
-          <Stack verticalAlign="center" tokens={stackTokens}>
-            <Text>{isCompetedTasks ? "Completed tasks" : "Active Tasks"}</Text>
-
-            <DetailsList
-              items={isCompetedTasks ? completedTasks : activeTasks}
-              columns={
-                isCompetedTasks ? completedTaskColumns : activeTaskColumns
-              }
-              setKey="setOfpolicyPages"
-              layoutMode={DetailsListLayoutMode.justified}
-              selection={
-                isCompetedTasks
-                  ? this._selectionForCompletedTasks
-                  : this._selectionForActiveTasks
-              }
-              selectionMode={SelectionMode.single}
-              selectionPreservedOnEmptyClick={true}
-              ariaLabelForSelectionColumn="Toggle selection"
-              ariaLabelForSelectAllCheckbox="Toggle selection for all items"
-              checkButtonAriaLabel="Row checkbox"
-              onRenderRow={this.onRenderRow}
-              //onItemInvoked={this._onItemInvoked}
-            />
-          </Stack>
-        </Stack>
-
-        {/* {isPageFormOpen && (
-          <PageForm
-            onCloseForm={this.onClosePageForm}
-            isOpenForm={isPageFormOpen}
+          <DetailsList
+            items={tasks}
+            columns={taskColumns}
+            setKey="setOfpolicyPages"
+            layoutMode={DetailsListLayoutMode.justified}
+            selection={this._selectionForTasks}
+            selectionMode={SelectionMode.single}
+            selectionPreservedOnEmptyClick={true}
+            ariaLabelForSelectionColumn="Toggle selection"
+            ariaLabelForSelectAllCheckbox="Toggle selection for all items"
+            checkButtonAriaLabel="Row checkbox"
           />
-        )} */}
-
+        </Stack>
         {isDeleteFormOpen && (
           <Dialog
             hidden={!isDeleteFormOpen}
@@ -444,18 +290,12 @@ export default class TaskManager extends React.Component<
               title: "Are you sure ?",
               subText: ""
             }}
-            //   modalProps={{
-            //     titleAriaId: this._labelId,
-            //     dragOptions: this._dragOptions,
-            //     isBlocking: false
-            //     // styles: { main: { maxWidth: 750 } }
-            //   }}
           >
             <div style={{ display: "flex", justifyContent: "center" }}>
               <DefaultButton
                 style={{ backgroundColor: "#dc224d", color: "white" }}
-                //disabled={loading}
-                onClick={null}
+                disabled={loading}
+                onClick={this._deleteTask}
                 text="Delete"
               />
             </div>
@@ -464,22 +304,6 @@ export default class TaskManager extends React.Component<
       </div>
     );
   }
-
-  public onRenderRow = (props: IDetailsRowProps): JSX.Element => {
-    const customStyles: Partial<IDetailsRowStyles> = {};
-
-    if (props.item.activated) {
-      customStyles.root = [
-        "root",
-        {
-          backgroundColor: "#b4f1b4"
-        }
-      ];
-    }
-
-    return <DetailsRow {...props} styles={customStyles} />;
-  };
-
   private _onCompetedTasks = (
     ev: React.MouseEvent<HTMLElement>,
     checked: boolean
@@ -496,10 +320,10 @@ export default class TaskManager extends React.Component<
   };
 
   public onOpenPageForm = () => {
-    this.setState({ isActiveTaskFormOpen: true });
+    this.setState({ isTaskFormOpen: true });
   };
 
   public onClosePageForm = () => {
-    this.setState({ isActiveTaskFormOpen: false });
+    this.setState({ isTaskFormOpen: false });
   };
 }

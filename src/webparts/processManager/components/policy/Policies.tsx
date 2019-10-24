@@ -86,10 +86,7 @@ export default class Policies extends React.Component<{}, IPolicyState> {
   };
 
   private _getPolicyPagesOptions = async () => {
-    const result = await SharePointService.getPolicyPages(
-      "SitePages",
-      "Templates"
-    );
+    const result = await SharePointService.getPolicyPages("SitePages");
 
     const policyPages = result.map(p => ({
       key: p.Name.split(".")[0],

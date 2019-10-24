@@ -3,13 +3,13 @@ import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
 import styles from "./ProcessManager.module.scss";
 import { IProcessManagerProps } from "./IProcessManagerProps";
-import { escape } from "@microsoft/sp-lodash-subset";
 import PageBuilder from "./page-builder/PageBuilder";
 import Policies from "./policy/Policies";
 import BlockMenu from "./BlockMenu";
 import PolicyAssignment from "./PolicyAssignment/PolicyAssignment";
 import GroupManager from "./group-manager/GroupManager";
 import TaskManager from "./task-manager/TaskManager";
+import Reports from "./reports/Report";
 
 export interface IProcessManagerState {
   activeComponents: string;
@@ -35,6 +35,7 @@ export default class ProcessManager extends React.Component<
           onComponentChange={newComponentName =>
             this.onComponentChange(newComponentName)
           }
+          activeComponents={activeComponents}
         />
         {activeComponents === "policies" && <Policies />}
 
@@ -46,6 +47,7 @@ export default class ProcessManager extends React.Component<
 
         {activeComponents === "taskManager" && <TaskManager />}
 
+        {activeComponents === "reports" && <Reports />}
         {/* <div className={ styles.container }>
           <div className={ styles.row }>
             <div className={ styles.column }>

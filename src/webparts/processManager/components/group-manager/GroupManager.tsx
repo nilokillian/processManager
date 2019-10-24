@@ -21,16 +21,12 @@ import GroupForm from "./NewGroupFrom";
 import UserForm from "./AddUserFrom";
 import SharePointService from "../../../../services/SharePoint/SharePointService";
 
-const stackTokens: IStackTokens = { childrenGap: 12 };
 const wrapStackTokens: IStackTokens = { childrenGap: 20 };
 const stackStyles: IStackStyles = {
   root: {
     width: 300
   }
 };
-// export interface IGroupManagerProps {
-//   selectedGroups: any[];
-// }
 
 export interface IGroupManagerState {
   groupColumns: IColumn[];
@@ -49,14 +45,11 @@ export default class GroupManager extends React.Component<
   {},
   IGroupManagerState
 > {
-  private _allItems: any[];
   private _selectionForGroups: Selection;
   private _selectionForUsers: Selection;
 
   private _getSelectionForGroups = () => {
     const selectionCount = this._selectionForGroups.getSelectedCount();
-    // if (selectionCount !== 0)
-    //   return (this._selection.getSelection()[0] as ITrackingRecordsItem).id;
 
     switch (selectionCount) {
       case 0:
@@ -70,8 +63,6 @@ export default class GroupManager extends React.Component<
 
   private _getSelectionForUsers = () => {
     const selectionCount = this._selectionForUsers.getSelectedCount();
-    // if (selectionCount !== 0)
-    //   return (this._selection.getSelection()[0] as ITrackingRecordsItem).id;
 
     switch (selectionCount) {
       case 0:
@@ -110,7 +101,6 @@ export default class GroupManager extends React.Component<
         minWidth: 100,
         maxWidth: 400,
         isResizable: true
-        //onColumnClick: this._onColumnClick
       },
 
       {
@@ -131,7 +121,6 @@ export default class GroupManager extends React.Component<
         minWidth: 100,
         maxWidth: 400,
         isResizable: true
-        //onColumnClick: this._onColumnClick
       },
 
       {
@@ -149,7 +138,6 @@ export default class GroupManager extends React.Component<
         minWidth: 100,
         maxWidth: 400,
         isResizable: true
-        //onColumnClick: this._onColumnClick
       }
     ];
 
@@ -295,18 +283,14 @@ export default class GroupManager extends React.Component<
       isDeleteFormOpen,
       loading
     } = this.state;
-    //selectionId && this._getGroupMembers(Number(selectionId));
-    // background: "#f3f3f3"
+
     return (
       <div>
         <Separator>
           <Text>Group manager</Text>
         </Separator>
 
-        <CommandBar
-          items={this._getMenuItems()}
-          //overflowItems={this.getOverlflowItems()}
-        />
+        <CommandBar items={this._getMenuItems()} />
 
         <Stack
           horizontal
@@ -331,7 +315,6 @@ export default class GroupManager extends React.Component<
         <Stack
           horizontal
           horizontalAlign="space-evenly"
-          // wrap
           tokens={wrapStackTokens}
           style={{ marginBottom: 30, marginTop: 30 }}
         >
@@ -346,7 +329,6 @@ export default class GroupManager extends React.Component<
             ariaLabelForSelectionColumn="Toggle selection"
             ariaLabelForSelectAllCheckbox="Toggle selection for all items"
             checkButtonAriaLabel="Row checkbox"
-            //onItemInvoked={this._onItemInvoked}
           />
 
           <DetailsList
@@ -360,7 +342,6 @@ export default class GroupManager extends React.Component<
             ariaLabelForSelectionColumn="Members"
             ariaLabelForSelectAllCheckbox="Toggle selection for all items"
             checkButtonAriaLabel="Row checkbox"
-            //onItemInvoked={this._onItemInvoked}
           />
         </Stack>
 
@@ -390,12 +371,6 @@ export default class GroupManager extends React.Component<
             title: "Are you sure ?",
             subText: ""
           }}
-          //   modalProps={{
-          //     titleAriaId: this._labelId,
-          //     dragOptions: this._dragOptions,
-          //     isBlocking: false
-          //     // styles: { main: { maxWidth: 750 } }
-          //   }}
         >
           <div style={{ display: "flex", justifyContent: "center" }}>
             <DefaultButton

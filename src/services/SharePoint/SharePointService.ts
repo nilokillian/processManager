@@ -59,7 +59,7 @@ export class SharePointServiceManager {
     return result;
   };
 
-  public pnp_activeTasks = (
+  public pnp_userTasks = (
     listTitle: string,
     policyTitle: string,
     userGroupTitle?: string
@@ -73,14 +73,16 @@ export class SharePointServiceManager {
 
   public getPolicyPage = async (
     libName: string,
-    folderName: string,
-    fileName: string
+    fileName: string,
+    folderName?: string
   ): Promise<any> => {
     const serverRelativeUrl = this.context.pageContext.web.serverRelativeUrl;
 
     return await sp.web
       .getFileByServerRelativeUrl(
-        `${serverRelativeUrl}/${libName}/${folderName}/${fileName}`
+        `${serverRelativeUrl}/${libName}/${
+          folderName ? folderName + "/" : ""
+        }${fileName}`
       )
       .get()
       .then(r => r);
@@ -88,13 +90,13 @@ export class SharePointServiceManager {
 
   public getPolicyPages = async (
     libName: string,
-    folderName: string
+    folderName?: string
   ): Promise<any> => {
     const serverRelativeUrl = this.context.pageContext.web.serverRelativeUrl;
 
     return await sp.web
       .getFolderByServerRelativeUrl(
-        `${serverRelativeUrl}/${libName}/${folderName}`
+        `${serverRelativeUrl}/${libName}/${folderName ? folderName + "/" : ""}`
       )
       .files.get()
       .then(res => (res = res));
@@ -102,14 +104,16 @@ export class SharePointServiceManager {
 
   public deletePolicyPage = async (
     libName: string,
-    folderName: string,
-    fileName: string
+    fileName: string,
+    folderName?: string
   ): Promise<any> => {
     const serverRelativeUrl = this.context.pageContext.web.serverRelativeUrl;
 
     return await sp.web
       .getFileByServerRelativeUrl(
-        `${serverRelativeUrl}/${libName}/${folderName}/${fileName}`
+        `${serverRelativeUrl}/${libName}/${
+          folderName ? folderName + "/" : ""
+        }/${fileName}`
       )
       .delete()
       .then(r => r);
@@ -567,12 +571,10 @@ export class SharePointServiceManager {
     itemIds: any[],
     items: any[]
   ): Promise<any> {
-    let web = new Web(this.context.pageContext.web.absoluteUrl);
-    let list = web.lists.getByTitle(listTitle);
-
+    //const web = new Web(this.context.pageContext.web.absoluteUrl);
+    const list = sp.web.lists.getByTitle(listTitle);
+    let batch = sp.web.createBatch();
     return list.getListItemEntityTypeFullName().then(entityTypeFullName => {
-      let batch = web.createBatch();
-
       items.map(item => {
         itemIds.map(id => {
           list.items

@@ -3,17 +3,11 @@ import { toast } from "react-toastify";
 import * as moment from "moment";
 import SharePointService from "../../../../services/SharePoint/SharePointService";
 import {
-  DefaultButton,
-  Dialog,
   PrimaryButton,
-  ContextualMenu,
-  DialogType,
-  Text,
   Panel,
   PanelType,
   Stack,
   IStackTokens,
-  TextField,
   Toggle
 } from "office-ui-fabric-react";
 import {
@@ -30,6 +24,7 @@ export interface IPolicyAssignmentFormProps {
   currentPolicy: {
     id: number;
     name: string;
+    policyPageTitle: string;
     groupsAssigned: IGroupsAssigned[];
     peopeleAssigned: IPeopeleAssigned[];
   };
@@ -46,7 +41,7 @@ export interface IPolicyAssignmentFormState {
   users: any[];
   groups: IGroupsAssigned[];
   usersInsideGroups: groupUser[];
-  activeTasks: ITask[];
+  userTasks: ITask[];
   errors: object;
   assignGroup: boolean;
   assignUser: boolean;
@@ -58,8 +53,10 @@ export interface ITask {
   Title: string;
   Email: string;
   AssignmentDate: string;
+  AcknowledgeDate: string;
   Policy: string;
   UserGroupTitle: string;
+  Status: string;
 }
 
 export interface groupUser {
@@ -73,31 +70,33 @@ export default class PolicyAssignmentForm extends React.Component<
   IPolicyAssignmentFormProps,
   IPolicyAssignmentFormState
 > {
-  private _getActiveTasks = async () => {
+  private _getUserTasks = async () => {
     const { currentPolicy } = this.props;
 
     //currentActiveTasks
 
-    const result = await SharePointService.pnp_activeTasks(
-      "ActiveTasks",
+    const result = await SharePointService.pnp_userTasks(
+      "UserTasks",
       currentPolicy.name
     );
-    const activeTasks = result.value.map(task => ({
+    const userTasks = result.value.map(task => ({
       Id: task.ID,
       UserId: task.UserId,
       Title: task.Title,
       Email: task.Email,
       AssignmentDate: task.AssignmentDate,
+      AcknowledgeDate: task.AcknowledgeDate,
       Policy: task.Policy,
-      UserGroupTitle: task.UserGroupTitle
+      UserGroupTitle: task.UserGroupTitle,
+      Status: "New"
     }));
     //console.log("currentActiveTasks", result.value);
-    this.setState({ activeTasks });
+    this.setState({ userTasks });
   };
 
   private _updateTasks = async () => {
     const groups: any[] = this.state.groups;
-    const activeTasks: any[] = this.state.activeTasks;
+    const activeTasks: any[] = this.state.userTasks;
     const { groupsAssigned, peopeleAssigned } = this.props.currentPolicy;
     const newGroups = [];
 
@@ -119,7 +118,7 @@ export default class PolicyAssignmentForm extends React.Component<
       await this._createTask(usersInsideNewGroups);
     } else {
       // no new groups added but the exisiting ones might have more or less users
-      const tasksToRemove = [];
+      const tasksToSetCanceled = [];
       const tasksToAdd = [];
       const usersInsideExistingGroups = await SharePointService.pnp_getGroupMembers(
         groups
@@ -130,14 +129,12 @@ export default class PolicyAssignmentForm extends React.Component<
         const usrExists = usersInsideExistingGroups.some(
           usr => usr.userId === Number(task.UserId)
         );
-        if (!usrExists) tasksToRemove.push(task);
+        if (!usrExists) tasksToSetCanceled.push(task);
       });
 
       //cheking if more users
       console.log("usersInsideExistingGroups", usersInsideExistingGroups);
       usersInsideExistingGroups.forEach(user => {
-        user.userId;
-        user.groupName;
         const isTask = activeTasks.some(
           task => Number(task.UserId) === user.userId
         );
@@ -148,9 +145,9 @@ export default class PolicyAssignmentForm extends React.Component<
       });
 
       await this._createTask(tasksToAdd);
-
+      await this._canceleTasks(tasksToSetCanceled.map(t => t.Id));
       console.log("tasksToAdd", tasksToAdd);
-      console.log("tasksToRemove", tasksToRemove);
+      console.log("_canceleTasks", tasksToSetCanceled);
     }
   };
 
@@ -168,8 +165,10 @@ export default class PolicyAssignmentForm extends React.Component<
           }
         );
         await this._createTask(usersInsideGroups);
+        toast.success("created");
       } else {
         this._updateTasks();
+        toast.success("updated");
       }
 
       this.setState({ loading: false });
@@ -215,12 +214,6 @@ export default class PolicyAssignmentForm extends React.Component<
           text="test button"
           disabled={loading}
         />
-
-        <PrimaryButton
-          onClick={this._removeTask}
-          text="remove tasks button"
-          disabled={loading}
-        />
       </div>
     );
   };
@@ -238,9 +231,10 @@ export default class PolicyAssignmentForm extends React.Component<
     this.setState({ groups, usersInsideGroups });
   };
 
-  private _createTask = async usersInsideGroups => {
+  private _createTask = async (usersInsideGroups: any[]) => {
     //const { usersInsideGroups } = this.state;
     const { currentPolicy } = this.props;
+    const url = SharePointService.context.pageContext.web.absoluteUrl;
 
     const qObjGroupUsers = usersInsideGroups.map(u => {
       return {
@@ -251,21 +245,30 @@ export default class PolicyAssignmentForm extends React.Component<
           .format("DD/MM/YYYY")
           .toString(),
         Policy: currentPolicy.name,
-        UserGroupTitle: u.groupName
+        PolicyPageUrl: `${url}/SitePages/${currentPolicy.policyPageTitle}.aspx`,
+        UserGroupTitle: u.groupName,
+        Status: "New"
       };
     });
     //console.log("ObjGroupUsers ", groupUsers);
     const tasks = await SharePointService.pnp_postByTitle_multiple(
-      "ActiveTasks",
+      "UserTasks",
       qObjGroupUsers
     );
     // console.log("tasks", tasks);
   };
 
-  private _removeTask = async () => {
-    await SharePointService.pnp_delete_multiple("ActiveTasks", [8, 9]);
-
-    SP.Client;
+  private _canceleTasks = async (taskIds?: number[]) => {
+    // taskIds?: number[]
+    try {
+      await SharePointService.pnp_update_multiple(
+        "UserTasks",
+        [2],
+        [{ Status: "Canceled" }]
+      );
+    } catch (error) {
+      throw error;
+    }
   };
 
   constructor(props: IPolicyAssignmentFormProps) {
@@ -275,7 +278,7 @@ export default class PolicyAssignmentForm extends React.Component<
       users: [],
       groups: [{ id: null, name: "" }],
       usersInsideGroups: [],
-      activeTasks: [],
+      userTasks: [],
       errors: {},
       loading: false,
       assignGroup: true,
@@ -295,13 +298,9 @@ export default class PolicyAssignmentForm extends React.Component<
         onDismiss={onCloseForm}
         headerText="Assigne people"
         closeButtonAriaLabel="Close"
-        //onRenderHeader={this._onRenderHeaderContent}
         onRenderFooterContent={this._onRenderFooterContent}
       >
-        <Stack
-          //  styles={stackContainerStyles}
-          tokens={itemAlignmentsStackTokens}
-        >
+        <Stack tokens={itemAlignmentsStackTokens}>
           <PeoplePicker
             context={SharePointService.context}
             titleText="Assign Groups"
@@ -316,14 +315,14 @@ export default class PolicyAssignmentForm extends React.Component<
             showHiddenInUI={false}
             principalTypes={[PrincipalType.SharePointGroup]}
             resolveDelay={1000}
-            disabled={!assignGroup}
+            disabled={!assignGroup || loading}
           />
           <Toggle
-            //label="Enabled and checked"
             checked={assignGroup}
             onText="On"
             offText="Off"
             onChange={this._onAssignGroupToggle}
+            disabled={loading}
           />
 
           <PeoplePicker
@@ -337,14 +336,14 @@ export default class PolicyAssignmentForm extends React.Component<
             showHiddenInUI={false}
             principalTypes={[PrincipalType.User]}
             resolveDelay={1000}
-            disabled={!assignUser}
+            disabled={!assignUser || loading}
           />
           <Toggle
-            //label="Enabled and checked"
             checked={assignUser}
             onText="On"
             offText="Off"
             onChange={this._onAssignUserToggle}
+            disabled={loading}
           />
         </Stack>
       </Panel>
@@ -355,7 +354,7 @@ export default class PolicyAssignmentForm extends React.Component<
     const { groupsAssigned, peopeleAssigned } = this.props.currentPolicy;
 
     if (groupsAssigned || peopeleAssigned) {
-      await this._getActiveTasks();
+      await this._getUserTasks();
     }
 
     if (groupsAssigned) {
