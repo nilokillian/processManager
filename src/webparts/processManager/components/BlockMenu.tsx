@@ -47,8 +47,8 @@ const iconStyle = {
 const wrapStackTokens: IStackTokens = { childrenGap: 20 };
 
 export interface IBlockMenuProps {
-  activeComponents: string;
-  onComponentChange(componentName: string): void;
+  activeComponents: { title: string; sortOrderNumber: number };
+  onComponentChange(componentName: string, sortOrderNumber: number): void;
 }
 
 export default class BlockMenu extends React.Component<IBlockMenuProps, {}> {
@@ -65,29 +65,12 @@ export default class BlockMenu extends React.Component<IBlockMenuProps, {}> {
           style={{ marginBottom: 30, marginTop: 30 }}
         >
           <ActionButton
-            iconProps={{ iconName: "ReportLibrary", style: iconStyle }}
-            allowDisabledFocus
-            styles={buttonStyle()}
-            onClick={() => onComponentChange("policies")}
-            style={
-              activeComponents === "policies"
-                ? {
-                    color: "#3b3b3b",
-                    boxShadow: "0px 3px 13px rgba(21, 164, 232, 0.3)"
-                  }
-                : {}
-            }
-          >
-            Policies
-          </ActionButton>
-
-          <ActionButton
             iconProps={{ iconName: "BuildDefinition", style: iconStyle }}
             allowDisabledFocus
             styles={buttonStyle()}
-            onClick={() => onComponentChange("pageBuilder")}
+            onClick={() => onComponentChange("pageBuilder", 1)}
             style={
-              activeComponents === "pageBuilder"
+              activeComponents.title === "pageBuilder"
                 ? {
                     color: "#3b3b3b",
                     boxShadow: "0px 3px 13px rgba(21, 164, 232, 0.3)"
@@ -99,12 +82,29 @@ export default class BlockMenu extends React.Component<IBlockMenuProps, {}> {
           </ActionButton>
 
           <ActionButton
+            iconProps={{ iconName: "ReportLibrary", style: iconStyle }}
+            allowDisabledFocus
+            styles={buttonStyle()}
+            onClick={() => onComponentChange("policies", 2)}
+            style={
+              activeComponents.title === "policies"
+                ? {
+                    color: "#3b3b3b",
+                    boxShadow: "0px 3px 13px rgba(21, 164, 232, 0.3)"
+                  }
+                : {}
+            }
+          >
+            Policies
+          </ActionButton>
+
+          <ActionButton
             iconProps={{ iconName: "Assign", style: iconStyle }}
             allowDisabledFocus
             styles={buttonStyle()}
-            onClick={() => onComponentChange("policyAssignment")}
+            onClick={() => onComponentChange("policyAssignment", 3)}
             style={
-              activeComponents === "policyAssignment"
+              activeComponents.title === "policyAssignment"
                 ? {
                     color: "#3b3b3b",
                     boxShadow: "0px 3px 13px rgba(21, 164, 232, 0.3)"
@@ -119,9 +119,9 @@ export default class BlockMenu extends React.Component<IBlockMenuProps, {}> {
             iconProps={{ iconName: "TaskSolid", style: iconStyle }}
             allowDisabledFocus
             styles={buttonStyle()}
-            onClick={() => onComponentChange("taskManager")}
+            onClick={() => onComponentChange("taskManager", 4)}
             style={
-              activeComponents === "taskManager"
+              activeComponents.title === "taskManager"
                 ? {
                     color: "#3b3b3b",
                     boxShadow: "0px 3px 13px rgba(21, 164, 232, 0.3)"
@@ -136,9 +136,9 @@ export default class BlockMenu extends React.Component<IBlockMenuProps, {}> {
             iconProps={{ iconName: "HomeGroup", style: iconStyle }}
             allowDisabledFocus
             styles={buttonStyle()}
-            onClick={() => onComponentChange("groups")}
+            onClick={() => onComponentChange("groups", 5)}
             style={
-              activeComponents === "groups"
+              activeComponents.title === "groups"
                 ? {
                     color: "#3b3b3b",
                     boxShadow: "0px 3px 13px rgba(21, 164, 232, 0.3)"
@@ -153,9 +153,9 @@ export default class BlockMenu extends React.Component<IBlockMenuProps, {}> {
             iconProps={{ iconName: "BookmarkReport", style: iconStyle }}
             allowDisabledFocus
             styles={buttonStyle()}
-            onClick={() => onComponentChange("reports")}
+            onClick={() => onComponentChange("reports", 6)}
             style={
-              activeComponents === "reports"
+              activeComponents.title === "reports"
                 ? {
                     color: "#3b3b3b",
                     boxShadow: "0px 3px 13px rgba(21, 164, 232, 0.3)"

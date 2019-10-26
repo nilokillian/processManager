@@ -12,7 +12,7 @@ import TaskManager from "./task-manager/TaskManager";
 import Reports from "./reports/Report";
 
 export interface IProcessManagerState {
-  activeComponents: string;
+  activeComponents: { title: string; sortOrderNumber: number };
 }
 
 export default class ProcessManager extends React.Component<
@@ -23,7 +23,7 @@ export default class ProcessManager extends React.Component<
     super(props);
 
     this.state = {
-      activeComponents: "policies"
+      activeComponents: { title: "pageBuilder", sortOrderNumber: 1 }
     };
   }
   public render(): React.ReactElement<IProcessManagerProps> {
@@ -32,22 +32,17 @@ export default class ProcessManager extends React.Component<
       <div className={styles.processManager}>
         <ToastContainer />
         <BlockMenu
-          onComponentChange={newComponentName =>
-            this.onComponentChange(newComponentName)
+          onComponentChange={(newComponentName, sortOrderNumber) =>
+            this.onComponentChange(newComponentName, sortOrderNumber)
           }
           activeComponents={activeComponents}
         />
-        {activeComponents === "policies" && <Policies />}
-
-        {activeComponents === "pageBuilder" && <PageBuilder />}
-
-        {activeComponents === "policyAssignment" && <PolicyAssignment />}
-
-        {activeComponents === "groups" && <GroupManager />}
-
-        {activeComponents === "taskManager" && <TaskManager />}
-
-        {activeComponents === "reports" && <Reports />}
+        {activeComponents.title === "pageBuilder" && <PageBuilder />}
+        {activeComponents.title === "policies" && <Policies />}
+        {activeComponents.title === "policyAssignment" && <PolicyAssignment />}
+        {activeComponents.title === "taskManager" && <TaskManager />}
+        {activeComponents.title === "groups" && <GroupManager />}
+        {activeComponents.title === "reports" && <Reports />}
         {/* <div className={ styles.container }>
           <div className={ styles.row }>
             <div className={ styles.column }>
@@ -64,11 +59,14 @@ export default class ProcessManager extends React.Component<
     );
   }
 
-  public onComponentChange = (componentName: string) => {
+  public onComponentChange = (
+    componentName: string,
+    sortOrderNumber: number
+  ) => {
     let { activeComponents } = this.state;
 
-    activeComponents = componentName;
-
+    activeComponents.title = componentName;
+    activeComponents.sortOrderNumber = sortOrderNumber;
     this.setState({ activeComponents });
   };
 }

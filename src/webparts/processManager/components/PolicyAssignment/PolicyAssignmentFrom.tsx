@@ -296,7 +296,7 @@ export default class PolicyAssignmentForm extends React.Component<
         type={PanelType.custom}
         customWidth="420px"
         onDismiss={onCloseForm}
-        headerText="Assigne people"
+        headerText="Assign people"
         closeButtonAriaLabel="Close"
         onRenderFooterContent={this._onRenderFooterContent}
       >
@@ -325,7 +325,7 @@ export default class PolicyAssignmentForm extends React.Component<
             disabled={loading}
           />
 
-          <PeoplePicker
+          {/* <PeoplePicker
             context={SharePointService.context}
             titleText="Assign Individuals"
             personSelectionLimit={1}
@@ -337,14 +337,14 @@ export default class PolicyAssignmentForm extends React.Component<
             principalTypes={[PrincipalType.User]}
             resolveDelay={1000}
             disabled={!assignUser || loading}
-          />
+          /> 
           <Toggle
             checked={assignUser}
             onText="On"
             offText="Off"
             onChange={this._onAssignUserToggle}
             disabled={loading}
-          />
+          />*/}
         </Stack>
       </Panel>
     );

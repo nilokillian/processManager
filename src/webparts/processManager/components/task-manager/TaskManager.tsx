@@ -30,22 +30,24 @@ export interface IComletedTask {
   userGroupTitle: string;
 }
 
-export interface IActiveTask {
+export interface ITask {
   title: string;
   userId: string;
   email: string;
   assignmentDate: string;
   policy: string;
   userGroupTitle: string;
+  status: string;
 }
 
 export interface ITaskManagerState {
   taskColumns: IColumn[];
-  tasks: IActiveTask[];
+  tasks: ITask[];
   selectedTaskId: number;
   isTaskFormOpen: boolean;
   isDeleteFormOpen: boolean;
-  isCompetedTasks: boolean;
+  isAcknowledgedTasks: boolean;
+  isCanceledTasks: boolean;
   loading: boolean;
 }
 
@@ -163,7 +165,8 @@ export default class TaskManager extends React.Component<
       selectedTaskId: null,
       isTaskFormOpen: false,
       isDeleteFormOpen: false,
-      isCompetedTasks: false,
+      isAcknowledgedTasks: false,
+      isCanceledTasks: false,
       loading: false
     };
   }
@@ -225,12 +228,12 @@ export default class TaskManager extends React.Component<
   public render(): JSX.Element {
     const {
       taskColumns,
-      tasks,
       loading,
       isDeleteFormOpen,
-      isCompetedTasks
+      isCanceledTasks,
+      isAcknowledgedTasks
     } = this.state;
-
+    const filteredTasks = this._filterTasks();
     return (
       <div>
         <Separator>
@@ -244,20 +247,20 @@ export default class TaskManager extends React.Component<
           style={{ marginBottom: 30, marginTop: 30 }}
         >
           <Toggle
-            label="Completed tasks"
+            label="acknowledged tasks"
             inlineLabel
-            defaultChecked={isCompetedTasks}
+            checked={isAcknowledgedTasks}
             onText=""
             offText=""
-            onChange={this._onCompetedTasks}
+            onChange={this._onAcknowledgeTasks}
           />
           <Toggle
-            label="Canceled tasks"
+            label="canceled tasks"
             inlineLabel
-            defaultChecked={isCompetedTasks}
             onText=""
             offText=""
-            onChange={this._onCompetedTasks}
+            checked={isCanceledTasks}
+            onChange={this._onCanceledTasks}
           />
         </Stack>
 
@@ -268,7 +271,7 @@ export default class TaskManager extends React.Component<
           style={{ marginBottom: 30, marginTop: 30 }}
         >
           <DetailsList
-            items={tasks}
+            items={filteredTasks}
             columns={taskColumns}
             setKey="setOfpolicyPages"
             layoutMode={DetailsListLayoutMode.justified}
@@ -304,11 +307,30 @@ export default class TaskManager extends React.Component<
       </div>
     );
   }
-  private _onCompetedTasks = (
+  private _onAcknowledgeTasks = (
     ev: React.MouseEvent<HTMLElement>,
     checked: boolean
   ) => {
-    this.setState({ isCompetedTasks: checked });
+    this.setState({ isAcknowledgedTasks: checked, isCanceledTasks: false });
+  };
+
+  private _onCanceledTasks = (
+    ev: React.MouseEvent<HTMLElement>,
+    checked: boolean
+  ) => {
+    this.setState({ isCanceledTasks: checked, isAcknowledgedTasks: false });
+  };
+
+  private _filterTasks = () => {
+    const { isCanceledTasks, isAcknowledgedTasks, tasks } = this.state;
+
+    if (isCanceledTasks) {
+      return tasks.filter(task => task.status === "Canceled");
+    } else if (isAcknowledgedTasks) {
+      return tasks.filter(task => task.status === "Acknowledged");
+    } else {
+      return tasks;
+    }
   };
 
   private _onOpenDeleteForm = () => {
